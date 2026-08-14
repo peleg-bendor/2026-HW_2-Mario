@@ -6,13 +6,14 @@ using UnityEngine;
 // "wait then flip something back" shape, done the other way).
 public class PlayerInvincible : MonoBehaviour
 {
-    [SerializeField] private float powerUpDuration = 10f;
+    [SerializeField] private float powerUpDuration = 5f;
     [SerializeField] private Color invincibleColor = new Color(1f, 0.84f, 0f);
 
     public bool IsInvincible { get; private set; }
 
     private SpriteRenderer spriteRenderer;
     private Color baseColor;
+    private Coroutine invincibilityRoutine;
 
     void Awake()
     {
@@ -26,8 +27,20 @@ public class PlayerInvincible : MonoBehaviour
 
     public void ActivateInvincibility()
     {
-        Debug.Log("Invincibility activated for " + gameObject.name);
-        StartCoroutine(InvincibilityCoroutine());
+        // A second star restarts the timer rather than leaving two runs going. Two of them would
+        // both end on their own schedule, so the earlier one would cut the effect short instead
+        // of the later one extending it.
+        if (invincibilityRoutine != null)
+        {
+            StopCoroutine(invincibilityRoutine);
+            Debug.Log("Invincibility restarted for " + gameObject.name);
+        }
+        else
+        {
+            Debug.Log("Invincibility activated for " + gameObject.name);
+        }
+
+        invincibilityRoutine = StartCoroutine(InvincibilityCoroutine());
     }
 
     private IEnumerator InvincibilityCoroutine()
@@ -43,6 +56,7 @@ public class PlayerInvincible : MonoBehaviour
             spriteRenderer.color = baseColor;
 
         IsInvincible = false;
+        invincibilityRoutine = null;
         Debug.Log("Invincibility ended for " + gameObject.name);
     }
 }

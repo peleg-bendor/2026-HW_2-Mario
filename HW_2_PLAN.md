@@ -43,7 +43,7 @@ one, because Tiled's `firstgid` is 1.
 | Rock (disappearing floor) | 14 | 15 | 3 |
 | Cloud (moving floor) | 15 | 16 | 4 |
 
-### Stage 0 — Repo and project setup `[~]`
+### Stage 0 — Repo and project setup `[x]`
 
 Getting `2026-HW_2-Mario` from "a copied folder that runs" to "a versioned project with a clean
 starting commit."
@@ -55,31 +55,37 @@ folder, so every `.meta` travels with its file and no GUID changes), Build Setti
 `Tools → Level` and `Tools → Tile Placer` windows re-assigned their three references, both tools
 tested end to end, and the game played through. Confirmed working.
 
-#### Step 2 — Remove the template leftover `[ ]`
+#### Step 2 — Remove the template leftover `[x]`
 
 `Assets/TutorialInfo/` came from the fresh URP template and survived the `Assets` copy — it's the
 only difference between this project's `Assets` and 1.5's. Nothing references it. Delete, the
 same call made about `Assets/_Recovery/` in 1.5.
 
-#### Step 3 — Git `[ ]`
+#### Step 3 — Git `[x]`
 
 `.gitignore` copied unchanged from 1.5. `README.md` written fresh, describing the project and
 carrying the tooling-differences section (Step 4). Then `git init` and an initial commit, so
 history starts from a working, cleaned-up state rather than the back-and-forth of getting there.
 
-#### Step 4 — README: how this project's tooling differs from the lesson's `[ ]`
+The remote is the one open question, because the repo itself is part of the hand-in: public is
+the only setting that reliably works without knowing the grader's account, but the `Assets` folder
+descends from the instructor's own Lesson 4 project, so a public repo republishes his material.
+Private with the grader invited avoids that; public and switched to private after grading is the
+middle road.
+
+#### Step 4 — README: how this project's tooling differs from the lesson's `[x]`
 
 The editor tooling deliberately departs from Lesson 6's `BuildLevel.cs`/`PrefabSpawnerWindow.cs`
 in seven ways, each with a reason (see the Decisions Log). All of it is defensible and most of it
 is a fix, but a reader expecting the lesson's shape will notice, so the README states the
 differences and why. The video covers the same ground in about thirty seconds.
 
-### Stage 0.5 — Fixes to inherited code `[ ]`
+### Stage 0.5 — Fixes to inherited code `[x]`
 
 Small things wrong in what came across from 1.5, worth fixing before new features are built on
 top of them.
 
-#### Step 1 — A second Star cuts invincibility short `[ ]`
+#### Step 1 — A second Star cuts invincibility short `[x]`
 
 `PlayerInvincible.ActivateInvincibility` calls `StartCoroutine` unconditionally, so collecting a
 second star while the first is active leaves two coroutines running. The first one still finishes
@@ -89,6 +95,16 @@ and flickers the state on the way.
 
 Fix by keeping the `Coroutine` handle and stopping it before starting a new one, which gives
 restart-the-timer semantics. Stage 1's speed boost gets built the same way from the start.
+
+Deliberately not done alongside it: no "already invincible, ignore this star" branch, since that
+wastes the pickup rather than restarting it, and no guard for the object being disabled mid-effect
+(which would strand `IsInvincible` at true), since Mario is never disabled and there is no second
+case asking for it.
+
+**Confirmed working** by Peleg, in the editor with a timer and via `OutputLogsTemp.txt`: two star
+pickups produced one `activated`, one `restarted` and one `ended` rather than the old two-and-two,
+and two ghost hits landing inside the restarted window cost no strikes at all - so the effect held
+across the restart rather than merely logging as though it had.
 
 ### Stage 1 — Lightning bolt: temporary speed boost `[ ]`
 
