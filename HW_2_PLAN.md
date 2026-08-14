@@ -106,7 +106,7 @@ pickups produced one `activated`, one `restarted` and one `ended` rather than th
 and two ghost hits landing inside the restarted window cost no strikes at all - so the effect held
 across the restart rather than merely logging as though it had.
 
-### Stage 1 — Lightning bolt: temporary speed boost `[ ]`
+### Stage 1 — Lightning bolt: temporary speed boost `[x]`
 
 Exercise item 1. Mario collects a lightning bolt; his speed increases by 50% of his maximum for
 5 seconds.
@@ -115,29 +115,47 @@ The fifth run of the pickup chain this codebase already uses four times (axe, fi
 strike): a trigger detector hands an `IPowerUp` to `PlayerPowerUp`, which applies it without
 knowing which kind it got. No new abstraction — the pattern is being followed, not extended.
 
-#### Step 1 — Design discussion `[ ]`
+#### Step 1 — Design discussion `[x]`
 
-#### Step 2 — Sprite and prefab `[ ]`
+#### Step 2 — Sprite and prefab `[x]`
 
 `Sprite_LightningBolt.png` into `Assets/Sprites/` with Pixels Per Unit set to 48, then
 `Sprite_LightningBolt.prefab` in `Assets/Prefabs/` with a trigger collider, mirroring
 `Sprite_Star.prefab`.
 
-#### Step 3 — `LightningPickupController` and `LightningPowerUp` `[ ]`
+#### Step 3 — `LightningBoltController` and `LightningBoltPowerUp` `[x]`
 
-Detector plus effect, following `StarController`/`StarPowerUp` exactly.
+Detector plus effect, following `StarController`/`StarPowerUp` exactly, including the shared noun
+across sprite, prefab, controller and power-up class.
 
-#### Step 4 — `PlayerSpeedBoost` `[ ]`
+#### Step 4 — `PlayerSpeedBoost` `[x]`
 
 New receiver on Mario, coroutine-driven, mirroring `PlayerInvincible`. It captures Mario's base
 speed once and restores to that value rather than dividing back out, so a second bolt collected
 mid-boost can't compound the multiplier. A second pickup restarts the timer instead of stacking,
 the same fix Stage 0.5 makes to invincibility.
 
-#### Step 5 — Tile id and playtest `[ ]`
+Also subscribes to `SC_Death.OnHazardCollision` directly, the same event `PlayerDeath` and
+`StrikesManager` already subscribe to independently, and cancels an active boost immediately on
+any hazard hit rather than letting it run out on its own clock - Peleg's call, so a boost never
+survives a respawn. Guarded by `PlayerInvincible.IsInvincible` the same way those two subscribers
+already are, so a star still protects an active boost the same way it protects a strike.
 
-`TilePrefabMap` row 14. Confirm the boost applies, expires on time, and that a second bolt during
-the boost restarts the clock without changing the speed.
+#### Step 5 — Tile id and playtest `[x]`
+
+`TilePrefabMap` row 14. Confirm the boost applies, expires on time, that a second bolt during the
+boost restarts the clock without changing the speed, and that a hazard hit while boosted cancels
+it immediately (speed back to base) unless a star is active, in which case the hit does nothing
+and the boost keeps running.
+
+**Confirmed working** by Peleg via `OutputLogsTemp.txt`: `activated`/`restarted`/`ended` fired
+exactly once each across a boost and a mid-boost second bolt, with `restarted` only possible while
+the first coroutine was still live; two independent hazard hits (one non-fatal, one the last
+strike) each cancelled an active boost immediately, logged right after the respawn; and a star
+picked up alongside a bolt protected both the strike count and the boost across five consecutive
+hazard hits, with both effects then ending on their own separate natural schedules undisturbed.
+The last-strike case cancelled the boost and reloaded the scene, coming back with no leftover
+boost state.
 
 ### Stage 2 — Health points, built with MVC `[ ]`
 
@@ -323,12 +341,16 @@ regression in the corner-perch case the current probe was built for.
 Exercise item 9: build a complete playable level with the tile editor and save the text file with
 all the level information inside Unity.
 
-#### Step 1 — Rename the level file `[ ]`
+#### Step 1 — Rename the level file `[x]`
 
 `Assets/Levels/Level01.json` becomes `Level01.txt`. Unity imports `.json` as a `TextAsset` exactly
 like `.txt`, so this changes nothing functionally — it matches the instructor's own
 `Level01-Mario00.txt` and removes any question about whether the deliverable is a text file.
 Renamed from inside Unity's Project window so the `.meta` follows and the GUID survives.
+
+Done early, during Stage 1's design discussion, since it cost nothing to do immediately rather
+than wait for Stage 9. `LevelWindow` holds the file as a `TextAsset` object reference, not a
+path string, so the rename needed no code change and the Inspector reference survived it.
 
 #### Step 2 — Export from Tiled once, then author in Unity `[ ]`
 
@@ -422,6 +444,49 @@ _(append entries here as we make design decisions.)_
   reads most naturally as Tiled too. Cheap to satisfy because `Level01.tmx` turned out to be four
   cells behind the live level rather than a rewrite behind it. The Tile Placer still does the real
   authoring work afterwards.
+- Stage 1 design decisions, made across the stage's own discussion before any code was written:
+    - There is no separate "maximum speed" field anywhere in the codebase - `PlayerMovement`
+      writes `rigid.linearVelocity` straight from `speed` with no acceleration ramp, so Mario's
+      horizontal speed is always either 0 or exactly `speed`. That makes `speed` itself the
+      maximum the exercise refers to, and the boost is a plain `speed → speed * 1.5` for
+      `boostDuration` seconds. Nothing to build beyond that; worth a sentence on video since a
+      reader expecting a `maxSpeed` field won't find one.
+    - `PlayerSpeedBoost` writes `PlayerMovement.speed` directly rather than either growing
+      `PlayerMovement` with an `ApplyBoost`/`ClearBoost` pair or having `PlayerMovement` read a
+      multiplier off it each frame. The former hands movement a timer it has no other reason to
+      own; the latter points the dependency backward, making movement aware of power-ups.
+    - Base speed is captured once in `PlayerSpeedBoost.Awake()` (mirroring `PlayerInvincible`'s
+      base-color capture) and every activation computes from that captured value rather than the
+      current one, so a second bolt collected mid-boost can't compound the multiplier and
+      restoring never drifts from repeated division. The one accepted cost: `Awake`'s value
+      becomes the permanent definition of "base" - nothing today ever changes Mario's walk speed
+      permanently, so this isn't guarding against a real case yet.
+    - No `IsBoosted` property. Nothing outside `PlayerSpeedBoost` needs to read boost state, unlike
+      `PlayerInvincible.IsInvincible`, which `PlayerDeath` and `StrikesManager` both consult.
+      Adding one now would be an abstraction with no second caller.
+    - No visual cue on the boost. A tint would collide with the star's: both would write
+      `SpriteRenderer.color` and restore to a base captured independently, so overlapping the two
+      effects would end with whichever expires first stomping the other's tint back to the wrong
+      color. Making that correct needs a tint arbiter, which is real new abstraction for a cosmetic
+      the exercise never asked for. The boost is demonstrated on video by speed alone.
+    - `deceleration` on `PlayerMovement` is left unscaled during a boost, so Mario slides further
+      before stopping while boosted (stopping distance grows from 0.31 to 0.70 units at the
+      exercise's 50%/5s numbers, per `PlayerMovement`'s own stopping-distance comment). Reads as
+      momentum, which suits a lightning bolt; revisit only if it feels wrong in the playtest.
+    - An active boost cancels immediately on any hazard hit - Peleg's call over the alternative of
+      letting it run out on its own clock regardless of a respawn. New code with no direct
+      precedent (`PlayerInvincible`'s own timer isn't touched by anything but a second star), but
+      it reuses the exact subscribe/guard shape `PlayerDeath` and `StrikesManager` already use for
+      the same event, including the same `PlayerInvincible.IsInvincible` guard, so a star still
+      protects an active boost the way it protects a strike.
+    - Naming follows the star quartet's single shared noun rather than the plan's original
+      `LightningPickupController`/`LightningPowerUp` (which didn't match the already-existing
+      `Sprite_LightningBolt` sprite and prefab): `LightningBoltController` and
+      `LightningBoltPowerUp`, alongside `PlayerSpeedBoost` for the receiver - named for the effect,
+      like `PlayerInvincible`, not the pickup, since the receiver has no business knowing a bolt
+      caused it.
+    - `Level01.json` renamed to `Level01.txt` during this stage's discussion rather than waiting
+      for Stage 9 - see Stage 9 Step 1, done early because it cost nothing to do immediately.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own

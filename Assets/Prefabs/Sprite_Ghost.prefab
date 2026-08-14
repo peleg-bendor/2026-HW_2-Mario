@@ -175,8 +175,8 @@ MonoBehaviour:
   startingFacing: 0
   spriteNativeFacing: 0
   speed: 2
-  groundCheckBuffer: 0.1
   wallCheckBuffer: 0.1
+  groundLossGrace: 0.15
 --- !u!114 &2852003687942470943
 MonoBehaviour:
   m_ObjectHideFlags: 0

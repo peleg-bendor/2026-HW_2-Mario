@@ -152,6 +152,7 @@ GameObject:
   - component: {fileID: 3425744299744829760}
   - component: {fileID: 8018852761519397433}
   - component: {fileID: 3383584319691705020}
+  - component: {fileID: 5097213179903124334}
   m_Layer: 0
   m_Name: Sprite_Mario
   m_TagString: Player
@@ -381,3 +382,17 @@ MonoBehaviour:
   weaponsHandler: {fileID: 8862726035188569024}
   fireballWeapon: {fileID: 5252002422463180648}
   axeWeapon: {fileID: 5595335233548201032}
+--- !u!114 &5097213179903124334
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8853114117106542180}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dec533a2ad862394a9233ceb8f9cf7f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSpeedBoost
+  boostDuration: 5
+  boostFraction: 0.5
