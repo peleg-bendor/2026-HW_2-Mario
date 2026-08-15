@@ -3385,7 +3385,7 @@ GameObject:
   - component: {fileID: 531094876}
   - component: {fileID: 531094875}
   m_Layer: 5
-  m_Name: Txt_Strikes
+  m_Name: Txt_Health
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3430,7 +3430,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Strikes: 3'
+  m_text: 'Health: 3'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3583,7 +3583,7 @@ GameObject:
   - component: {fileID: 600698372}
   - component: {fileID: 600698373}
   m_Layer: 0
-  m_Name: StrikeCountManager
+  m_Name: HealthView
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3613,10 +3613,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 600698371}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4756434cc6d35614ebd205428d2b84d4, type: 3}
+  m_Script: {fileID: 11500000, guid: 16e452f952a97214f84b4bf22c7cdf12, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StrikeCountManager
-  strikesText: {fileID: 531094875}
+  m_EditorClassIdentifier: Assembly-CSharp::HealthView
+  healthText: {fileID: 531094875}
 --- !u!1001 &606261426
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8070,7 +8070,7 @@ GameObject:
   - component: {fileID: 1624343663}
   - component: {fileID: 1624343664}
   m_Layer: 0
-  m_Name: StrikesManager
+  m_Name: HealthController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8100,10 +8100,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1624343662}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0f5bf95df8731a241a33be01edb0e8fb, type: 3}
+  m_Script: {fileID: 11500000, guid: 867305549f05a85408a41babbc6ff99e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StrikesManager
-  startingStrikes: 3
+  m_EditorClassIdentifier: Assembly-CSharp::HealthController
+  maxHealth: 3
+  healthView: {fileID: 600698373}
 --- !u!1001 &1646100808
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10841,7 +10842,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5042522623738022728, guid: a4fd49b6691af0842baa36430fb4ee65, type: 3}
       propertyPath: m_Name
-      value: Sprite_Strike
+      value: Sprite_Health
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

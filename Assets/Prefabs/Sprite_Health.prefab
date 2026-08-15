@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4780130838808428721}
   - component: {fileID: 7493597822886757129}
   m_Layer: 0
-  m_Name: Sprite_Strike
+  m_Name: Sprite_Health
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

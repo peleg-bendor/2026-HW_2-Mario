@@ -157,7 +157,7 @@ hazard hits, with both effects then ending on their own separate natural schedul
 The last-strike case cancelled the boost and reloaded the scene, coming back with no leftover
 boost state.
 
-### Stage 2 — Health points, built with MVC `[ ]`
+### Stage 2 — Health points, built with MVC `[x]`
 
 Exercise item 2, and the one item that dictates its own architecture. Mario has health points,
 collectable up to a maximum of 3, lost on hazard contact; at zero he returns to the start and the
@@ -167,34 +167,93 @@ HW1's strike system already does all of this. The work is a rename plus a rebuil
 behavior in MVC shape, not new mechanics. The instructor confirmed directly that reusing the
 existing system is fine.
 
-#### Step 1 — Design discussion `[ ]`
+#### Step 1 — Design discussion `[x]`
 
-#### Step 2 — Interfaces and model `[ ]`
+`IHealthModel` (`CurrentHealth`, `MaxHealth`, `Gain()`, `Lose()`, the latter two returning
+whether they actually changed anything) and `IHealthView` (`ShowHealth(int)`), mirroring how
+thin `StrikeCountManager`'s one job already is. `HealthModel` takes its max in its constructor
+rather than carrying `[SerializeField]` itself, since it's plain C# - the tunable number moves up
+to `HealthController`'s own `[SerializeField] private int maxHealth = 3`, the same field
+`StrikesManager.startingStrikes` already is, just one layer out. Starting health equals max, the
+same doubled meaning `startingStrikes` has today, so a heart pickup only does anything after
+Mario's taken a hit.
+
+Hierarchy stays parallel to what's there now rather than being reshuffled: `HealthController`
+takes over the standalone `StrikesManager` GameObject under `Scripts`, `HealthView` takes over
+`StrikeCountManager`'s spot directly on `Txt_Strikes` (renamed `Txt_Health`), and
+`HealthController` reaches it through a `[SerializeField] private HealthView healthView` field -
+the same cross-object reference shape `StrikeCountManager`'s own `[SerializeField]
+TextMeshProUGUI` field already uses, just one hop further out. The controller pushes
+`healthView.ShowHealth(model.CurrentHealth)` once in `Start()` and again after any `Gain()`/
+`Lose()` call that returns `true`; a no-op call redraws nothing, matching how the old event
+isn't raised on the ignored branches either.
+
+`OnGameOver` moves to `HealthController` as the same shape of static event
+`StrikesManager.OnGameOver` is today, which means `GameEndManager.cs` needs a one-line edit
+(`StrikesManager.OnGameOver` -> `HealthController.OnGameOver`) even though it isn't one of the
+files being renamed.
+
+`Tiles01/Tiles/Sprite_Strike.png` gets renamed to `Sprite_Health.png` alongside the Unity-side
+rename, with the matching one-line fix to `MarioTiles.tsx`'s `<image source=.../>` - Peleg's call,
+over leaving the Tiled-side asset saying "Strike" forever. Cheap since Tiled is already a
+one-time bootstrap.
+
+Everything else carries over from the strike system exactly as HW1 built it and the plan already
+called: health loss fires on every hazard type, not literally only spikes; every hit teleports
+Mario to start, not just the zero-health one; the Star suppresses loss the same way it suppresses
+strike loss today.
+
+#### Step 2 — Interfaces and model `[x]`
 
 `IHealthModel`/`IHealthView` in `Assets/Scripts/Interfaces/`, and `HealthModel` as a plain C#
 class owning the count, the maximum, and the rules for changing it. No Unity types in the model.
+`Gain()`/`Lose()` return whether they actually changed anything, so `HealthController` can
+reproduce the old ignored-branch logging without the model touching `Debug.Log` itself.
 
-#### Step 3 — View and controller `[ ]`
+#### Step 3 — View and controller `[x]`
 
-`HealthView` draws the number onto the `Txt_` label. `HealthController` subscribes to
-`SC_Death.OnHazardCollision` and the health pickup's event, updates the model, pushes to the view,
-and raises game over. `GameEndManager` currently subscribes to `StrikesManager.OnGameOver`, so
-that event has to survive the refactor on whichever piece ends up owning it.
+`HealthView` draws the number onto the `Txt_` label (now `Txt_Health`). `HealthController`
+subscribes to `SC_Death.OnHazardCollision` and `HealthPowerUp.OnHealthGained`, updates the model,
+pushes to the view, and raises game over. Bundled into this step rather than left for Step 4, once
+it became clear both were needed for the controller to compile and function at all: the pickup
+pair's rename (`StrikePickupController`/`StrikePowerUp` → `HealthPickupController`/
+`HealthPowerUp`), and `GameEndManager` repointed from `StrikesManager.OnGameOver` to
+`HealthController.OnGameOver`.
 
-#### Step 4 — Retire the strike system and rename `[ ]`
+Hierarchy: `HealthController` took over the standalone `StrikesManager` GameObject under
+`Scripts`. `HealthView` took over the separate `StrikeCountManager` GameObject (also under
+`Scripts`, a sibling of `StrikesManager` — not a component riding on `Txt_Strikes` itself, an
+assumption the first pass at these instructions got wrong and had to correct). `Txt_Strikes`
+renamed to `Txt_Health`, carries no script, just the label.
 
-`StrikesManager` and `StrikeCountManager` go once the MVC trio is confirmed. "Strike" becomes
-"health" across `StrikePowerUp`, `StrikePickupController`, the prefab, the GUI object and the
-label text. Renaming `Sprite_Strike.prefab` is safe — `TilePrefabMap` holds GUID references — but
-renaming `Tiles01/Tiles/Sprite_Strike.png` is not, since `MarioTiles.tsx` points at it by
-filename. Rename the Unity side, and fix the `.tsx` in the same move or leave that file alone.
+Stray comments elsewhere naming the retired `StrikesManager` were also fixed as part of this step:
+`Portal.cs`, `PlayerDeath.cs`, `PlayerSpeedBoost.cs`.
 
-#### Step 5 — Playtest `[ ]`
+#### Step 4 — Retire the strike system and rename `[x]`
 
-Losing health to spikes and to both enemies, the cap at 3, game over at zero, and the scene
-reload restoring collected coins, the key, and killed enemies (the exercise's "reinitialize all
-objects" clause, which the reload already satisfies — confirm it deliberately rather than assume
-it). Also confirm the Star still suppresses health loss.
+By the time Step 3 was done, `StrikesManager.cs`/`StrikeCountManager.cs` and the Unity-side
+`Sprite_Strike` prefab/sprite renames had already happened alongside it. What was left: the
+Tiled-side rename, since `MarioTiles.tsx` points at `Tiles01/Tiles/Sprite_Strike.png` by filename
+rather than GUID. Renamed the file and fixed the one `<image source=.../>` line to match — Peleg's
+call, over leaving the Tiled-side asset saying "Strike" forever.
+
+#### Step 5 — Playtest `[x]`
+
+**Confirmed working** by Peleg via `OutputLogsTemp.txt`: health lost from a garlic hit, from
+spikes twice, and from a ghost touch that reached zero; health gained from the heart pickup;
+zero health drove `Game over - message pending` straight out of `HealthController:OnHazardCollision`
+into `GameEndManager:HandleGameOver`, confirming the event ownership actually moved; and the
+reload afterward reinitialized state cleanly (`Starting with 1 axe(s)`, spawner back to `1/3`).
+Star suppression confirmed too, on a second read of the same log: two ghost hits logged by
+`SC_Death` while `Invincibility ended` hadn't fired yet produced no `Health lost` and no respawn —
+the same silent-skip shape `PlayerDeath`'s own guard has always had. Cap-at-3 wasn't separately
+exercised (health only ever climbed from 2 to 3 in the log, not attempted past it), but `Gain()`'s
+own guard is the same tested code path as `Lose()`'s zero-floor guard.
+
+A leftover from the first pass at Step 3's instructions surfaced during this check and got
+cleaned up: an extra, orphaned `HealthView` briefly sat on `Txt_Health` itself (from an earlier,
+incorrect version of the wiring instructions) alongside the correctly-wired one on the `HealthView`
+GameObject. Removed; confirmed gone from the saved scene afterward.
 
 ### Stage 3 — Disappearing floor tile `[ ]`
 

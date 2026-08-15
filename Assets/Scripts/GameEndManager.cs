@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Decides how the game ended and restarts it. StrikesManager and Portal only report their own
+// Decides how the game ended and restarts it. HealthController and Portal only report their own
 // condition and don't know this class exists, so neither of them owns any part of the ending.
 public class GameEndManager : MonoBehaviour
 {
@@ -34,13 +34,13 @@ public class GameEndManager : MonoBehaviour
 
     private void OnEnable()
     {
-        StrikesManager.OnGameOver += HandleGameOver;
+        HealthController.OnGameOver += HandleGameOver;
         Portal.OnGameWon += HandleGameWon;
     }
 
     private void OnDisable()
     {
-        StrikesManager.OnGameOver -= HandleGameOver;
+        HealthController.OnGameOver -= HandleGameOver;
         Portal.OnGameWon -= HandleGameWon;
     }
 

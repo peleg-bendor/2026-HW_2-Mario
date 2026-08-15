@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // Puts Mario back where the level started him whenever a hazard hits him, unless he's currently
-// invincible. Deliberately counts nothing: StrikesManager subscribes to the same event
+// invincible. Deliberately counts nothing: HealthController subscribes to the same event
 // independently and owns whether that hit was the last one.
 public class PlayerDeath : MonoBehaviour
 {

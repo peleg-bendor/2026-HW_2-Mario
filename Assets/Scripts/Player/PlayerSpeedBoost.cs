@@ -66,7 +66,7 @@ public class PlayerSpeedBoost : MonoBehaviour
     private void OnHazardCollision()
     {
         // No PlayerInvincible on this object is treated as never invincible, matching
-        // PlayerDeath's and StrikesManager's fallback for the same optional reference.
+        // PlayerDeath's and HealthController's fallback for the same optional reference.
         if (playerInvincible != null && playerInvincible.IsInvincible)
             return;
 
