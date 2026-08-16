@@ -7,9 +7,9 @@ using UnityEngine;
 // everything it creates can be written back out as level data.
 public class TilePlacerWindow : EditorWindow
 {
-    private TilePrefabMap tilePrefabMap;
-    private GameObject levelParent;
-    private int selectedIndex;
+    [SerializeField] private TilePrefabMap tilePrefabMap;
+    [SerializeField] private GameObject levelParent;
+    [SerializeField] private int selectedIndex;
 
     // Off by default and easy to switch back off, because while it's on the Scene view stops
     // selecting things on click.

@@ -9,9 +9,9 @@ using UnityEngine;
 // type never means changing this file.
 public class LevelWindow : EditorWindow
 {
-    private TextAsset levelFile;
-    private TilePrefabMap tilePrefabMap;
-    private GameObject levelParent;
+    [SerializeField] private TextAsset levelFile;
+    [SerializeField] private TilePrefabMap tilePrefabMap;
+    [SerializeField] private GameObject levelParent;
 
     // Gathered from the scene before anything is written, so the grid can be sized to fit what
     // was actually found rather than assumed from the file it came from.
