@@ -26,8 +26,8 @@ Stages 1-9 match Exercise 2's own item numbers exactly, which also happens to be
 order: items 1-4 create the four objects, 5-7 make the tooling handle them, 8 is independent of
 all of it, and 9 needs everything to exist first. Stage 0 gets the project versioned before any
 feature work; Stage 0.5 fixes things wrong in the inherited code before anything new is built on
-top of them. Stage 8.5 holds a real bug found during Stage 4 that nothing else depends on, parked
-until the required items are done. Stage 9.5 holds optional work that is explicitly not required by
+top of them. Stage 8.5 collects the projectile problems found while building other things, none of
+which anything else depends on. Stage 9.5 holds optional work that is explicitly not required by
 the exercise, and Stage 10 is the submission video. Each stage gets its own design discussion before code, the same
 way every stage of HW1 and 1.5 did.
 
@@ -549,35 +549,73 @@ Exercise item 8: an extension method reporting whether the player is in the air,
 second jump, with the double jump recharging on landing.
 
 This is the item Stage 3 of the 1.5 project was going to build from the other direction, so its
-design points carry over: port HW1's own box-cast probe rather than the lesson's degenerate
-`Physics2D.OverlapArea` (both corners at the same point), and keep `SC_Floor.OnFloorCollision`
-subscribed, since landing is what recharges the jump.
+design points carry over: build the extension around the box probe this project already has rather
+than the lesson's degenerate `Physics2D.OverlapArea` (both corners at the same point), and keep
+`SC_Floor.OnFloorCollision` subscribed, since landing is what recharges the jump.
 
-#### Step 1 — Design discussion `[ ]`
+Worth knowing before the discussion starts, since the wording above once suggested otherwise:
+the probe isn't somewhere else waiting to be ported. It's already sitting in
+`PlayerJump.IsGrounded()`, an `OverlapBoxAll` across Mario's own footprint filtered to `SC_Floor`,
+with its own comments explaining the width factor and the corner-perch case it was built for. Step
+2 moves that body into an extension rather than writing a new one.
+
+#### Step 1 — Design discussion `[x]`
+
+Held before any code, same as every stage. Full outcome in the Decisions Log; the steps below are
+what it settled on.
 
 #### Step 2 — The extension `[ ]`
 
-New `Assets/Scripts/Extensions/` folder. The extension goes on `Collider2D` rather than the
-lesson's `Transform`, because our probe reads collider bounds while the lesson's reads only a
-position — a `Transform` version would have to `GetComponent` on every call or hardcode a size.
-Both `IsGrounded` and `IsInAir` are exposed, one line each: the exercise asks for the in-air one,
-the first jump wants the grounded one.
+New `Assets/Scripts/Extensions/` folder, holding `GroundedExtension.cs` - the lesson's own file and
+class name, so the parallel is immediate to anyone comparing the two.
+
+The extension goes on `Collider2D` rather than the lesson's `Transform`, because our probe reads
+collider bounds while the lesson's reads only a position: a `Transform` version would have to
+`GetComponent` on every call or hardcode a size. `IsGrounded(float probeDepth)` carries the body
+moved out of `PlayerJump`; `IsInAir(float probeDepth)` is its one-line negation. Both public.
+
+No `LayerMask` parameter, unlike the lesson. This project decides what counts as terrain by
+`SC_Floor` rather than by layer, and that filter belongs inside the extension, which makes it a
+project-specific helper rather than a general Unity one. The probe's width factor moves in as a
+`const` (it describes the probe's own shape); `groundProbeDepth` stays serialized on `PlayerJump`
+and is passed in, so it remains tunable per object.
 
 #### Step 3 — `PlayerJump` `[ ]`
 
-The `isJumping` bool becomes a jump counter with a serialized maximum, reset on landing.
+The `isJumping` bool becomes `jumpsUsed`, counting jumps spent since the last landing, against a
+serialized `maxJumps` defaulting to 2. `SC_Floor.OnFloorCollision` resets it, still guarded so only
+a real transition logs. `PlayerJump.IsGrounded()` is deleted outright rather than kept as a wrapper.
+
+`Jump()` reads `bool inAir = bodyCollider.IsInAir(groundProbeDepth)` into a named local, charges
+the ground jump when `inAir && jumpsUsed == 0` (the ledge rule), then rejects on
+`jumpsUsed >= maxJumps`. Vertical velocity is zeroed before the impulse.
+
+Two comments need rewriting rather than adjusting: the file header still describes the class as
+owning "whether a jump is still in progress", and the two-condition comment inside `Jump()`
+explains logic that no longer exists.
 
 #### Step 4 — Playtest `[ ]`
 
-Two jumps and no third; walking off a ledge leaves one jump, not two (Peleg's call - the exercise
-doesn't say, and spending the ground jump by stepping off an edge is the behavior that makes a
-double jump feel like a recovery rather than a free second chance); recharge on landing; and no
-regression in the corner-perch case the current probe was built for.
+Two jumps and no third; recharge on landing; walking off a ledge leaves exactly one jump; and no
+regression in the corner-perch case the current probe was built for. Added from this stage's
+discussion: that the double jump reaches the same height whether it's taken at the apex or deep
+into a fall (the velocity zeroing), that a rock tile vanishing underfoot leaves one recovery jump
+the same way a ledge does, and that riding a cloud reads as grounded and landing back on one
+recharges normally.
 
-### Stage 8.5 — An axe frozen against a moving tile's side `[ ]`
+`maxJumps` needs no Inspector work - a new field takes its code default - but should be eyeballed
+on the prefab rather than assumed. Setting it to 3 for a triple jump and back is also the cheapest
+demo of why the number is serialized at all.
 
-Not an exercise item. A real bug found during Stage 4's playtest, parked here rather than fixed on
-the spot because nothing else in Exercise 2 depends on it and the items above are worth more.
+### Stage 8.5 — Projectile problems found along the way `[ ]`
+
+No exercise item asks for any of this. Three things turned up while building other stages, none of
+them load-bearing; they are collected here rather than fixed on the spot because the required items
+are worth more. One of the three is already done, since it turned out to cost nothing.
+
+#### An axe frozen against a moving tile's side `[ ]`
+
+A real bug found during Stage 4's playtest.
 
 A landed `ProjectileAxe` rests by hard-freezing its `Rigidbody2D` (`RigidbodyConstraints2D.
 FreezeAll`), so an axe that stops against a cloud tile's vertical face is held up by nothing but
@@ -700,7 +738,9 @@ which item is being shown, one take per part.
 Beyond the per-item walkthroughs, four things need saying explicitly on camera: why the health
 system reuses HW1's strikes (asked and confirmed with the instructor), why the level builder
 needed no code change to support new tiles, why Tiled is a bootstrap rather than a live source,
-and that walking off a ledge leaves Mario one jump rather than two.
+and what walking off a ledge does to the jump count. That last one has to be worded as what it
+is - stepping off an edge goes from no jump at all to exactly one - rather than as a restriction,
+since the game never gave two there in the first place.
 
 Item 5's beat is a live edit in Tiled followed by an export and a Build Level in Unity, per Peleg -
 the requirement names the tile editor separately from the Level Create script, so showing the tool
@@ -748,7 +788,11 @@ _(append entries here as we make design decisions.)_
   tile type buys a guarantee that Tiled can never reach into the Unity project.
 - Walking off a ledge leaves Mario one jump rather than two, per Peleg. The exercise says only
   that the double jump recharges on landing, so this is interpretation: spending the ground jump
-  by stepping off an edge makes the second jump a recovery rather than a free extra.
+  by stepping off an edge makes the second jump a recovery rather than a free extra. Worth stating
+  carefully on video, because "one rather than two" describes the choice against the other
+  interpretation, not against the game as it stands: today `Jump()` rejects outright when the
+  probe finds no ground, and `isJumping` is false the whole way down a ledge, so stepping off an
+  edge currently means no jump at all. The change is zero to one.
 - Tiled appears twice in the work and twice on video, rather than being retired outright as 1.5's
   plan had it. Item 5 names the tile editor separately from the Level Create script, so the
   tileset genuinely has to be updated there, and item 9's "build the level using the tile editor"
@@ -1026,6 +1070,50 @@ _(append entries here as we make design decisions.)_
     - The hover preview deliberately doesn't indicate whether the cell under the cursor holds
       anything, though it would be cheap and erasing is destructive. The exercise doesn't ask, and
       the log says what happened immediately afterwards.
+- Stage 8 design decisions, made across the stage's own discussion before any code was written:
+    - The plan's claim about the probe was checked against the file rather than repeated:
+      `PlayerJump.IsGrounded()` really is the `OverlapBoxAll` box, 0.9 of the collider's width by
+      `groundProbeDepth` tall, sitting under `bounds.min.y` and filtered by `GetComponent<SC_Floor>`.
+      The body moves into the extension unchanged, with `bodyCollider` becoming the `this` parameter
+      and `groundProbeDepth` becoming an argument.
+    - The counter is "jumps spent since the last landing", not "a ground jump plus a separate
+      air-jump allowance". Both shapes give two jumps; only the first survives the reason
+      `isJumping` existed. `AddForce` lands on the next `FixedUpdate`, so the probe still finds the
+      tile under Mario's feet for a frame or two after take-off - under the split shape a fast
+      double-tap re-enters the ground branch and he climbs indefinitely. With one total counter the
+      counter is the gate rather than the probe, so a stale grounded reading costs nothing.
+    - `inAir` is pulled out as a named local rather than called inline, and carries the comment
+      saying it is what makes the second jump conditional. The alternative was an explicit
+      `else if (inAir && jumpsUsed < maxJumps)` branch, which reads more literally against the
+      requirement's own wording but eats a genuinely fast double-tap during those same stale-probe
+      frames. Naming the local buys the same visibility on camera without the input cost.
+    - `IsGrounded` stays public despite nothing calling it, as a deliberate exception to this
+      project's rule about not exposing what has no second use case. It is the probe itself, and
+      the method the exercise actually asks for is its one-line negation; hiding the primitive
+      would mean giving it a private name chosen only to keep it out of the way. Said out loud
+      here rather than dressed up as the first jump needing it, which it does not - the ground
+      jump is the absence of a rejection.
+    - Vertical velocity is zeroed before the impulse. `AddForce` in `Impulse` mode adds to whatever
+      velocity is already there, and Mario's prefab (mass 1, gravity scale 1.5, linear damping 5)
+      falls at a terminal 2.94 units/second against a `jumpSpeed` of 10, so an air jump at the apex
+      launches at 10 and one taken mid-fall at about 7 - roughly half the height off the same
+      button. One line, applied unconditionally since a grounded Mario's vertical velocity is
+      already zero, so the first jump is unaffected and there is no second branch.
+    - No belt-and-braces recharge beside the landing event. `SC_Floor` only raises
+      `OnFloorCollision` when `IsAboveTile` passes, so a landing that reads as a side touch leaves
+      the counter unreset - true of `isJumping` today too, so not a regression. The obvious safety
+      net ("if the probe says grounded, zero the counter") reintroduces the take-off staleness
+      above and would refund the ground jump mid-ascent.
+    - The extension is deliberately not a general Unity helper. It filters on `SC_Floor` rather
+      than taking the lesson's `LayerMask`, because that is how this project has always decided
+      what terrain is, and moving the filter out to the caller would mean every caller repeating
+      it. Stated in the file header so nobody reaches for it in another project.
+    - Both new tile types were checked against the design rather than left to the playtest to
+      discover: a rock tile disables its collider when it vanishes, so the probe stops finding it
+      and Mario gets the ledge rule's one recovery jump for free, which is the best behavior that
+      tile could have; a cloud keeps its collider enabled throughout, so riding one reads as
+      grounded and landing back on one fires `OnCollisionEnter2D` normally because contact
+      genuinely ended.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own
