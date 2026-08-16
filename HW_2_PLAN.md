@@ -255,7 +255,7 @@ cleaned up: an extra, orphaned `HealthView` briefly sat on `Txt_Health` itself (
 incorrect version of the wiring instructions) alongside the correctly-wired one on the `HealthView`
 GameObject. Removed; confirmed gone from the saved scene afterward.
 
-### Stage 3 — Disappearing floor tile `[ ]`
+### Stage 3 — Disappearing floor tile `[x]`
 
 Exercise item 3: a floor tile that appears for 2 seconds and disappears for 2 seconds.
 
@@ -264,9 +264,9 @@ text describes a cycle with no trigger, it needs no per-tile detection of who st
 tiles started at load stay in sync with no coordinator. The touch-triggered version is the more
 classic-feeling one and gets a sentence in the video as the road not taken.
 
-#### Step 1 — Design discussion `[ ]`
+#### Step 1 — Design discussion `[x]`
 
-#### Step 2 — Sprite, prefab and behavior `[ ]`
+#### Step 2 — Sprite, prefab and behavior `[x]`
 
 `Sprite_Rock` imported and prefabbed with `SC_Floor` and a solid collider, so it counts as real
 ground for the jump check and the projectiles. The component toggles the `SpriteRenderer` and the
@@ -274,10 +274,25 @@ ground for the jump check and the projectiles. The component toggles the `Sprite
 running its own coroutine, so the tile would vanish and never come back. Durations are serialized
 fields, not literals.
 
-#### Step 3 — Tile id and playtest `[ ]`
+`Sprite_Rock.png` turned out to already be sitting in `Assets/Sprites/` with import settings
+already matching the project convention (Single sprite mode, 48 pixels per unit) - nothing to do
+there beyond building the prefab.
+
+#### Step 3 — Tile id and playtest `[x]`
 
 `TilePrefabMap` row 15. Confirm Mario falls when a tile he's standing on vanishes, that the tile
-returns, and that jumping off a rock tile works the same as off a floor tile.
+returns, and that jumping off a rock tile works the same as off a floor tile. Last, once those are
+confirmed: deliberately try to land Mario in a tile's space right as it reappears under him, and
+note what happens - an accepted edge case from the design discussion, not something the tile is
+built to prevent.
+
+**Confirmed working** by Peleg in the editor: Mario falls when a rock tile under him vanishes, the
+tile returns solid and visible on schedule, and jumping off one feels identical to jumping off
+`Sprite_Floor`. The edge case got a harder test than planned - Mario placed surrounded by rock
+tiles on all four sides at once, rather than just one reappearing underfoot. He's held in place for
+a moment while the surrounding tiles are solid, freed again the next time they vanish, with no
+crash, no death, and nothing left stuck afterward. Confirms the design discussion's call: worth
+watching once, not worth building around.
 
 ### Stage 4 — Moving floor tile `[ ]`
 
@@ -295,6 +310,10 @@ placed side by side move in lockstep for free as long as they share a speed and 
 
 `Sprite_Cloud` imported and prefabbed with `SC_Floor` and a solid collider. Travel distance and
 step timing are serialized fields, defaulting to the 2 tiles the exercise asks for.
+
+Whether this script and Stage 3's `DisappearingFloor` justify a shared `Assets/Scripts/Tiles/`
+folder is worth deciding now that a second tile-behavior script exists - deferred at Stage 3's
+design discussion for exactly this reason, since one script alone didn't earn a new folder.
 
 #### Step 3 — Carrying Mario `[ ]`
 
@@ -546,6 +565,72 @@ _(append entries here as we make design decisions.)_
       caused it.
     - `Level01.json` renamed to `Level01.txt` during this stage's discussion rather than waiting
       for Stage 9 - see Stage 9 Step 1, done early because it cost nothing to do immediately.
+- Stage 2 design decisions, made across the stage's own discussion and while implementing it:
+    - `IHealthModel`'s `Gain()`/`Lose()` return whether they actually changed anything rather than
+      the new count, so `HealthController` can tell an ignored change (already at max, already at
+      zero) from a real one without re-reading the value, and so the model needs no `Debug.Log`
+      of its own despite being the thing deciding whether anything happened.
+    - The tunable health numbers live on `HealthController` as `[SerializeField] private int
+      maxHealth`, not on `HealthModel` - the model is plain C# with no Unity types, so the
+      Inspector-facing number necessarily sits one layer out, the same way `StrikesManager.
+      startingStrikes` did before it. Starting health equals max, the same doubled meaning
+      `startingStrikes` had.
+    - The pickup rename (`StrikePickupController`/`StrikePowerUp` → `HealthPickupController`/
+      `HealthPowerUp`) and the `GameEndManager` repoint (`StrikesManager.OnGameOver` →
+      `HealthController.OnGameOver`) both got pulled into Step 3 rather than left for Step 4 as
+      originally sketched, once it became clear `HealthController` couldn't compile or function
+      without them - both were things Step 4 assumed already existed.
+    - The first pass at the hierarchy-wiring instructions got it wrong: `StrikeCountManager` was
+      assumed to be a component riding directly on `Txt_Strikes`, when it was actually its own
+      standalone GameObject under `Scripts`, a sibling of `StrikesManager`, reaching `Txt_Strikes`'s
+      `TextMeshProUGUI` through a plain cross-object field. Caught by re-reading the scene file
+      rather than trusting the earlier read, after Peleg asked about a GameObject the first
+      instructions never mentioned. Left a real loose end behind - an orphaned `HealthView` on
+      `Txt_Strikes`/`Txt_Health` itself, wired to nothing - found and removed before Step 5's
+      playtest closed the stage out.
+    - `Tiles01/Tiles/Sprite_Strike.png` renamed to `Sprite_Health.png`, with the matching one-line
+      fix to `MarioTiles.tsx`'s `<image source=.../>`, over leaving the Tiled-side asset saying
+      "Strike" forever - Peleg's call, cheap since Tiled is already a one-time bootstrap.
+- Stage 3 design decisions, made across the stage's own discussion before any code was written:
+    - The new component is `DisappearingFloor`, not `DisappearingRock`/`DisappearingTile` - the
+      project already has `Sprite_Floor.prefab` carrying `SC_Floor` for plain terrain, so "Floor" is
+      the established noun for this category, and naming after the sprite would tie the class to one
+      specific look rather than the behavior. Chosen with Stage 4's `MovingFloor` in mind too: both
+      are adjective-first compounds naming the behavior described in the exercise's own wording (a
+      floor that disappears, a floor that moves), so the family reads consistently even though the
+      two tiles' sprites and implementations share nothing. No base class or interface between them,
+      though - `DisappearingFloor` is a timer toggling a `SpriteRenderer`/`Collider2D`, `MovingFloor`
+      will be a per-frame position write with rider tracking, and the only thing they actually share
+      (being a floor tile, participating in the jump check) already lives in `SC_Floor`, which both
+      carry as their own separate component. Two known future use cases don't justify an abstraction
+      when neither would share any code through it - only a naming convention.
+    - Sits on the `Sprite_Rock` prefab as a second component alongside `SC_Floor`, not a replacement
+      for it - `SC_Floor` keeps owning "is this a floor tile" and the landing signal,
+      `DisappearingFloor` only owns the visibility cycle.
+    - `visibleDuration` and `hiddenDuration` are two separate serialized fields, both defaulting to
+      2, rather than one shared number - independently tunable even though the exercise asks for the
+      same value on both sides.
+    - The cycle starts visible, not hidden, matching the exercise's own word order (appears, then
+      disappears) - the level opens with every rock tile solid.
+    - No coordinator object. Every tile runs its own identical coroutine
+      (`while (true) { Show(); wait; Hide(); wait; }`) started from its own `Start()`. They stay in
+      sync because the Level builder places every tile before Play begins, so every instance's
+      `Start()` runs the same frame, and identical `WaitForSeconds` calls from the same frame resolve
+      together - including after a mid-game reload, which rebuilds the scene and restarts every
+      instance from the same frame again.
+    - Logging follows the codebase's per-transition convention, with one addition: a static
+      `Time.frameCount` guard (one for the show transition, one for hide) means whichever tile's
+      coroutine reaches a transition first in a given frame logs it, and every other tile hitting the
+      same transition that frame stays quiet - one log line per collective appear/disappear
+      regardless of how many rock tiles are in the level, without a shared timer object or any change
+      to the per-tile toggle logic itself.
+    - `Assets/Scripts/Tiles/` as a home for `DisappearingFloor` and Stage 4's `MovingFloor` is
+      deferred to Stage 4's own discussion, once a second tile-behavior script actually exists to
+      decide the question with.
+    - One known edge case, deliberately not designed around: a tile reappearing at the exact moment
+      Mario's collider overlaps the space it resolidifies in could shove him out abruptly that frame.
+      Left as a playtest check at the end of Step 3 rather than prevention code, since building
+      around it would mean the tile needing to know about Mario specifically.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own
