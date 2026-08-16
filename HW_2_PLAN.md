@@ -390,7 +390,7 @@ spurious `Axe's support vanished, falling again`. So those four lines were never
 One case is genuinely broken and deferred rather than fixed here: an axe frozen against a cloud's
 *side* is left hanging in mid-air when the tile slides away. See Stage 8.5.
 
-### Stage 5 — Tiled tileset and the level builder `[~]`
+### Stage 5 — Tiled tileset and the level builder `[x]`
 
 Exercise item 5: add the new tiles to the tile editor, export an image with all of them in it, and
 develop the level-creating editor script to support them.
@@ -446,16 +446,18 @@ Two things are wrong with it rather than one: it aims at the closed 1.5 project,
 would drop a second, unread level file beside the real one. Repointed after the data is current,
 since the moment it aims here, Export replaces the live level with whatever Tiled holds.
 
-#### Step 4 — The image with the new tiles in it `[ ]`
+#### Step 4 — The all-tiles image, dropped `[x]`
 
-A Collection of Images has no packed sheet to export, so this is a made image: a scratch map
-holding the four tiles item 5 names (bolt, heart, rock, cloud), exported with Tiled's own
-`File -> Export As Image` into `Tiles01/`. Four rather than all sixteen, per Peleg - the
-requirement's "כולם" reads most naturally as the four tiles of items 1-4, the heart counts as one
-of them even though it was already in the tileset, and Tiled's tileset panel already displays all
-sixteen if the broader reading ever needs answering.
+Not produced, per Peleg. Item 5's "ולהוציא תמונה עם כולם בפנים" answers a problem that only exists
+when the tileset is one packed spritesheet: there, the image with every tile in it is the tileset
+file itself and comes for free. A Collection of Images has no such file, so satisfying the clause
+would mean manufacturing a PNG that nothing in the project reads, purely to be looked at once.
 
-#### Step 5 — The export round trip `[ ]`
+Covered on camera instead, which is where it does some good: the Tiled tileset panel with all 16
+tiles visible while the choice gets explained, so the shot is an image with all of them inside and
+the reason there's no packed sheet at the same time. See Stage 10.
+
+#### Step 5 — The export round trip `[x]`
 
 The builder placing all three is already proven: Stages 1, 3 and 4 each played their tile in-game,
 which means `LevelWindow` has built them out of the level file many times over. What has never been
@@ -466,6 +468,17 @@ writes, and `JsonUtility` ignores every key `TiledMap` doesn't declare, so it pa
 
 Overlaps Stage 9 Step 2 on purpose, so video day repeats a path that already worked instead of
 trying it for the first time on camera.
+
+**Confirmed working** by Peleg, and by diffing the files afterwards rather than trusting the
+counts. He ran a longer loop than the step asked for: Tiled export into `Level01.txt`, Build Level,
+Save Level, Build Level again. All three logged 154 objects, no warnings of any kind, and all 600
+cells of the resaved `Level01.txt` came back identical to `Level01.tmx`. The second half is the
+part worth having: `Save Level` recovers a tile's id through
+`PrefabUtility.GetCorrespondingObjectFromSource`, so an unchanged file proves the three new prefabs
+are recoverable as ids and not merely placeable from them - 10 rocks, 6 clouds and 2 bolts among
+the 154. Tiled's raw export can't be inspected after the fact, since Save Level overwrites it with
+the compact form, but a bad export would have built a wrong scene and the resave couldn't have
+matched.
 
 ### Stage 6 — Tile placer covers every object `[ ]`
 
@@ -639,7 +652,10 @@ and that walking off a ledge leaves Mario one jump rather than two.
 
 Item 5's beat is a live edit in Tiled followed by an export and a Build Level in Unity, per Peleg -
 the requirement names the tile editor separately from the Level Create script, so showing the tool
-being used answers it better than showing a finished file. That needs one thing set up beforehand:
+being used answers it better than showing a finished file. It also carries the one part of item 5
+that produces no file: with the tileset panel open and all 16 tiles on screen, say that each PNG
+was added on its own rather than as one packed sheet, and that this is why there's no separate
+all-tiles image to show. That shot is the image. That needs one thing set up beforehand:
 `Level01.tmx` re-synced from the final `Level01.txt` the same way Stage 5 Step 3 does it, so the
 on-camera edit is a small addition on top of the real level and pressing Export adds only that
 change instead of replacing everything the Tile Placer authored.
@@ -902,10 +918,13 @@ _(append entries here as we make design decisions.)_
       free (a map id and a gid are the same number here), and it leaves Peleg editing the current
       level in Tiled instead of reconstructing it first. He still authors freely on top - the point
       of the regeneration is only to skip the reconstruction.
-    - The all-tiles image covers the four tiles of items 1-4, not all sixteen - Peleg's call, and
-      the requirement's own wording supports it, since "כולם" attaches to the four tiles the
-      sentence just named. Tiled's tileset panel already shows all sixteen if the wider reading ever
-      needs answering, at the cost of a screenshot.
+    - No all-tiles image gets produced at all - Peleg's call, after the step was first scoped as a
+      scratch map of the four tiles and then as a one-click export of the level itself. The clause
+      asking for it assumes the lesson's packed spritesheet, where that image is the tileset file
+      and costs nothing; against a Collection of Images it means manufacturing a PNG nothing reads.
+      The tiles were added one PNG at a time because that's the structure this project chose, and
+      saying so on camera over a shot of the full tileset panel answers the requirement in the place
+      it actually gets graded.
     - Nothing is added to `LevelWindow` to make the tooling half of item 5 look like work. There is
       no code to change, and inventing some would be building for an examiner rather than a need,
       against this project's own rule about not generalizing early. The demo that makes the
