@@ -630,7 +630,27 @@ _(append entries here as we make design decisions.)_
     - One known edge case, deliberately not designed around: a tile reappearing at the exact moment
       Mario's collider overlaps the space it resolidifies in could shove him out abruptly that frame.
       Left as a playtest check at the end of Step 3 rather than prevention code, since building
-      around it would mean the tile needing to know about Mario specifically.
+      around it would mean the tile needing to know about Mario specifically. Tested harder than
+      planned - Mario boxed in by rock tiles on all four sides at once - and held in place for a
+      moment, then freed clean on the next vanish, with no crash, no death, and nothing left stuck.
+    - `LevelWindow` and `TilePlacerWindow` had their `ObjectField`-backed fields as plain `private`
+      rather than `[SerializeField]`, so Unity's own window-layout persistence never picked them up,
+      and a full editor close and reopen reset the level file, tile prefab map, and parent
+      references every time. Found and fixed during this stage's testing, unrelated to the stage
+      itself: marking the fields `[SerializeField]` lets Unity persist them the same way it already
+      persists a window's position and size.
+    - Throwing an axe against a rock tile and letting the tile disappear exposed a real bug in
+      `ProjectileAxe`: a landed axe rests by hard-freezing its `Rigidbody2D`
+      (`RigidbodyConstraints2D.FreezeAll`), not by gravity and a normal contact force, so the tile
+      vanishing from under or beside it left the axe locked in mid-air with nothing supporting it.
+      Fixed by having the axe track the specific collider it froze against and check every frame
+      whether that collider is still enabled - if not, it drops back to the prefab's own resting
+      constraint (`FreezeRotation`) and resets to the same not-yet-landed state a freshly thrown
+      axe starts in, so the same collision branch handles what happens next: killing an enemy it
+      falls onto, or landing again elsewhere. This only reacts to a collider being disabled, not
+      to one that stays enabled but moves - which is what Stage 4's moving floor tile does, so a
+      landed axe resting on or against a cloud is a case that stage's own design needs to consider
+      separately, not something this fix already covers.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own

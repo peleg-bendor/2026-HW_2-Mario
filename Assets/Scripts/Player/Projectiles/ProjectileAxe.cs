@@ -22,6 +22,11 @@ public class ProjectileAxe : MonoBehaviour
     // this, an axe spawning at his position counts as instantly reclaimed and vanishes.
     private bool hasLanded = false;
 
+    // What a landed axe is frozen against. Checked every frame so a tile that later disables its
+    // own collider - a disappearing floor tile vanishing under it - lets the axe fall again
+    // instead of staying locked in mid-air forever.
+    private Collider2D restingOn;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -49,6 +54,9 @@ public class ProjectileAxe : MonoBehaviour
             Debug.Log("Axe despawned");
             Destroy(gameObject);
         }
+
+        if (hasLanded && (restingOn == null || !restingOn.enabled))
+            ResumeFalling();
     }
 
     public void Attack(float direction)
@@ -81,6 +89,7 @@ public class ProjectileAxe : MonoBehaviour
                 // makes it a solid obstacle, which is why a patrolling enemy turns around at one.
                 Debug.Log("Axe landed");
                 hasLanded = true;
+                restingOn = col.collider;
                 rb.linearVelocity = Vector2.zero;
                 rb.constraints = RigidbodyConstraints2D.FreezeAll;
             }
@@ -95,5 +104,17 @@ public class ProjectileAxe : MonoBehaviour
                 playerPowerUp.CollectPowerUp(new AxePowerUp());
             Destroy(gameObject);
         }
+    }
+
+    // Returns to the same physical state a freshly thrown axe is in, so the fall this resumes is
+    // handled by OnCollisionEnter2D's own pre-landed branch above - including the enemy kill -
+    // rather than a second copy of that logic.
+    private void ResumeFalling()
+    {
+        Debug.Log("Axe's support vanished, falling again");
+        hasLanded = false;
+        restingOn = null;
+        rb.linearVelocity = Vector2.zero;
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
     }
 }
