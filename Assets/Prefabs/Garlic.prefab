@@ -172,7 +172,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileGarlic
   speed: 5
-  lifetime: 3
+  lifetime: 6
 --- !u!114 &2300814970406037947
 MonoBehaviour:
   m_ObjectHideFlags: 0

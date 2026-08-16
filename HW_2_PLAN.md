@@ -35,14 +35,32 @@ way every stage of HW1 and 1.5 did.
 
 Three new tile types, not four: item 2's heart is the existing `Sprite_Strike`, already tile id
 12, and gets renamed rather than added. The mapping's id is always the Tiled tileset's id plus
-one, because Tiled's `firstgid` is 1.
+one, because Tiled's `firstgid` is 1, which also makes a `TilePrefabMap` id and a raw gid in a
+Tiled export the same number.
 
-| Object | Tiled `.tsx` id | `TilePrefabMap` id | Stage |
-|---|---|---|---|
-| Lightning bolt | 13 | 14 | 1 |
-| Heart (renamed from Strike) | 11 | 12 | 2 |
-| Rock (disappearing floor) | 14 | 15 | 3 |
-| Cloud (moving floor) | 15 | 16 | 4 |
+The whole table rather than only the new rows, because nothing in either project verifies that the
+two id spaces stay one apart, and the prefab and the Tiled image don't always share a name. Every
+row below was read out of `TilePrefabMap.asset` by resolving its prefab GUID, not copied from
+memory.
+
+| `TilePrefabMap` id | Unity prefab | Tiled `.tsx` id | Tiled image | Stage |
+|---|---|---|---|---|
+| 1 | `Sprite_Gateway` | 0 | `Gateway.png` |  |
+| 2 | `Sprite_Axe` | 1 | `Sprite_Axe.png` |  |
+| 3 | `Sprite_Coin` | 2 | `Sprite_Coin.png` |  |
+| 4 | `Sprite_Floor` | 3 | `Sprite_Earth.png` |  |
+| 5 | `Sprite_Flower` | 4 | `Sprite_FireFlower.png` |  |
+| 6 | `Sprite_Ghost` | 5 | `Sprite_Ghost.png` |  |
+| 7 | `Sprite_Grave` | 6 | `Sprite_Grave.png` |  |
+| 8 | `Sprite_Key` | 7 | `Sprite_Key.png` |  |
+| 9 | `Sprite_Mario` | 8 | `Sprite_Mario.png` |  |
+| 10 | `Sprite_Spikes` | 9 | `Sprite_Spikes.png` |  |
+| 11 | `Sprite_Star` | 10 | `Sprite_Star.png` |  |
+| 12 | `Sprite_Health` (renamed from Strike) | 11 | `Sprite_Health.png` | 2 |
+| 13 | `Sprite_Vampire` | 12 | `Sprite_Vampire.png` |  |
+| 14 | `Sprite_LightningBolt` | 13 | `Sprite_LightningBolt.png` | 1 |
+| 15 | `Sprite_Rock` | 14 | `Sprite_Rock.png` | 3 |
+| 16 | `Sprite_Cloud` | 15 | `Sprite_Cloud.png` | 4 |
 
 ### Stage 0 — Repo and project setup `[x]`
 
@@ -372,7 +390,7 @@ spurious `Axe's support vanished, falling again`. So those four lines were never
 One case is genuinely broken and deferred rather than fixed here: an axe frozen against a cloud's
 *side* is left hanging in mid-air when the tile slides away. See Stage 8.5.
 
-### Stage 5 — Tiled tileset and the level builder `[ ]`
+### Stage 5 — Tiled tileset and the level builder `[~]`
 
 Exercise item 5: add the new tiles to the tile editor, export an image with all of them in it, and
 develop the level-creating editor script to support them.
@@ -383,31 +401,71 @@ to the tool. That's the Open/Closed Principle from Lesson 3 applied to the lesso
 `switch`, and it's a stronger answer than editing a switch statement — but only if it's said out
 loud, since a reader expecting to watch the script change will otherwise see no change at all.
 
-#### Step 1 — Update `MarioTiles.tsx` `[ ]`
+Confirmed by reading the files rather than repeated from the earlier draft of this plan:
+`LevelWindow.cs` holds no tile id anywhere, `PlaceLayer` goes straight to
+`tilePrefabMap.GetPrefab(tileId)` and collects anything unmapped into a warning, and
+`TilePlacerWindow` builds its dropdown from `tilePrefabMap.Entries`. All 16 rows of
+`TilePrefabMap.asset` already have their prefabs assigned. There is genuinely nothing to change in
+either tool.
 
-Three `<tile>` entries at ids 13-15 for the three new sprites, `tilecount` raised from 13 to 16.
-The 48px copies already sit in `Tiles01/Tiles/`.
+#### Step 1 — Fix the coin's image path in `MarioTiles.tsx` `[x]`
 
-#### Step 2 — Re-sync the map and fix its export target `[ ]`
+Tile id 2 points at `Tiles/Sprite_Coin 1.png`, which doesn't exist. The folder holds
+`Sprite_Coin.png`, byte-identical to the coin art the game uses, so Tiled has been showing the coin
+as a broken tile for as long as the tileset has existed. A one-line edit to the file with Tiled
+closed, ahead of everything else: deleting and re-adding the tile through the UI would renumber it
+and break every coin in the map, and a tileset saved while one entry is broken risks Tiled dropping
+that entry.
 
-`Level01.tmx` and the level actually being played differ by exactly four cells: a coin added at
-(18, 19), and a floor tile at (19, 12) plus spikes at (18, 11) and (20, 11) removed. That's the
-Tile Placer test from the end of 1.5's Stage 2 and nothing else, so Tiled is four edits away from
-current rather than a re-authoring job. Fix those cells, paint the new tile types in, and point
-the export target at this project - it still writes to `../2026-1.5-Mario/Assets/Levels/Level01.json`,
-the old project, which is harmless right up until someone presses Export.
+#### Step 2 — Add the three tiles through Tiled `[x]`
 
-#### Step 3 — The all-tiles image `[ ]`
+`Tileset -> Add Tiles`, one at a time in the order lightning bolt, rock, cloud, so Tiled assigns
+ids 13, 14 and 15 to line up with `TilePrefabMap`'s 14, 15 and 16. Adding all three in one
+multi-select would let the file dialog's alphabetical order decide instead (Cloud, LightningBolt,
+Rock), which wouldn't error - it would turn every cloud already in the level into a bolt at the next
+export. Peleg's call over hand-editing the `.tsx`: the tiles genuinely get added in the tile editor,
+which is what item 5 asks for and what the video shows. The 48px copies already sit in
+`Tiles01/Tiles/`, all three byte-identical to their `Assets/Sprites/` twins.
 
-A Collection of Images tileset has no packed sheet to export, so this is a single PNG laying all
-tiles out in a grid, kept in `Tiles01/`, produced purely to satisfy the requirement's wording.
-Skippable — it's packaging, not function, and the tile ids and level data are identical either
-way — but it costs five minutes and removes the argument.
+#### Step 3 — Re-sync the map and fix its export target `[x]`
 
-#### Step 4 — Confirm the builder places all three `[ ]`
+`Level01.tmx` is 41 cells behind the live level, not the four an earlier draft of this plan
+recorded. That figure predated Stages 1, 3 and 4, each of which painted its new tile into the level
+several times over on top of 1.5's Tile Placer test: 11 rocks, 6 clouds, 2 bolts, 2 hearts, a star,
+a grave, five coins added and two removed, three floors added and seven removed. Grid size is
+unchanged at 30x20.
 
-No code change expected. Build a test level containing every new type and check each one lands in
-the right cell.
+Rather than repainting 41 cells by hand, the `<data>` block gets regenerated from
+`Assets/Levels/Level01.txt`. `firstgid` is 1, so a map id and a gid are the same number and the
+conversion is a reflow of the same 600 integers with no translation step. That hands Peleg the
+current level to author on top of in Tiled instead of a stale one to reconstruct first.
+
+The export target moves to `../2026-HW_2-Mario/Assets/Levels/Level01.txt`, `format="json"` kept.
+Two things are wrong with it rather than one: it aims at the closed 1.5 project, and it ends in
+`.json` while the live file has been `Level01.txt` since Stage 9 Step 1, so fixing only the folder
+would drop a second, unread level file beside the real one. Repointed after the data is current,
+since the moment it aims here, Export replaces the live level with whatever Tiled holds.
+
+#### Step 4 — The image with the new tiles in it `[ ]`
+
+A Collection of Images has no packed sheet to export, so this is a made image: a scratch map
+holding the four tiles item 5 names (bolt, heart, rock, cloud), exported with Tiled's own
+`File -> Export As Image` into `Tiles01/`. Four rather than all sixteen, per Peleg - the
+requirement's "כולם" reads most naturally as the four tiles of items 1-4, the heart counts as one
+of them even though it was already in the tileset, and Tiled's tileset panel already displays all
+sixteen if the broader reading ever needs answering.
+
+#### Step 5 — The export round trip `[ ]`
+
+The builder placing all three is already proven: Stages 1, 3 and 4 each played their tile in-game,
+which means `LevelWindow` has built them out of the level file many times over. What has never been
+tested is the direction from Tiled. Export once, check the resulting `Level01.txt` cell for cell
+against what it held before, Build Level, then Save Level to return the file to `LevelWindow`'s own
+compact shape. A Tiled export carries the whole Tiled JSON rather than the reduced form the tool
+writes, and `JsonUtility` ignores every key `TiledMap` doesn't declare, so it parses either way.
+
+Overlaps Stage 9 Step 2 on purpose, so video day repeats a path that already worked instead of
+trying it for the first time on camera.
 
 ### Stage 6 — Tile placer covers every object `[ ]`
 
@@ -481,6 +539,36 @@ confirmed working, so the disappearing-tile case has to be re-tested alongside i
 sliding *into* a frozen axe keeps contact, so the axe stays put while the tile passes through it
 for a moment.
 
+#### Fireball and garlic airtime `[x]`
+
+Not part of Stage 8.5's bug and not deferred with it - raised by Peleg during Stage 5's discussion
+and fixed on the spot, since it turned out to be two Inspector values and no code.
+
+Both projectiles end `Attack` with `Destroy(gameObject, lifetime)`, so `lifetime` is seconds of
+flight, but both also die early when `OnTriggerEnter2D` finds an `SC_Floor`. Only the garlic was
+ever limited by its timer: `Garlic.prefab` already had `Gravity Scale` 0 so it flew level for the
+full 3 seconds, while `Fireball.prefab`'s `Gravity Scale` of 0.5 dropped the fireball into the
+ground within about half a second, two or three cells out, so its own 3-second `lifetime` was never
+reached and raising it alone would have done nothing.
+
+Fireball `Gravity Scale` 0.5 -> 0 and both `lifetime` values 3 -> 6. The fireball and the garlic now
+have the same flight model, which is what they always read as on screen.
+
+#### A latent bug in the axe throw, found alongside it `[ ]`
+
+Nobody asked for this and nothing depends on it; recorded because it is real and nothing else has
+it written down. `ProjectileAxe.Attack` calls `AddForce(new Vector2(direction * speedX, speedY))`
+with no `ForceMode2D`, so it takes the default `Force` mode and one call lasts exactly one physics
+step. `Axe.prefab`'s `speedX: 500` and `speedY: 30` therefore land as roughly 10 units/second
+sideways and 0.6 up. Both `ProjectileFireball` and `ProjectileGarlic` pass `ForceMode2D.Impulse`
+and carry the comment explaining why, so this codebase documents the lesson twice and applies it to
+two projectiles out of three.
+
+The throw feels fine as it is, because those two numbers were tuned against the behaviour the bug
+produces. What the bug actually costs is that both of them silently depend on the project's Fixed
+Timestep. Fixing it means passing `Impulse` and retuning: with mass 1, `speedX` 500 becomes 10 to
+reproduce today's throw exactly.
+
 ### Stage 9 — The full level `[ ]`
 
 Exercise item 9: build a complete playable level with the tile editor and save the text file with
@@ -503,6 +591,9 @@ Item 9 asks for the level to be built "using the tile editor", which most likely
 Stage 5 leaves Tiled holding a current map with the new tile types in it. So export from there
 straight into `Assets/Levels/Level01.txt` and Build Level once, which covers the strict reading of
 the requirement and gives the video one clean Tiled-to-Unity beat.
+
+Stage 5 Step 5 runs this path once already, so what happens here is a repeat of something known to
+work rather than the first attempt.
 
 Everything after that is Unity-side: `Tools → Tile Placer` for the real placement work, putting
 the new tile types where each can be demonstrated on camera, then `Save Level` and `Build Level`
@@ -545,6 +636,13 @@ Beyond the per-item walkthroughs, four things need saying explicitly on camera: 
 system reuses HW1's strikes (asked and confirmed with the instructor), why the level builder
 needed no code change to support new tiles, why Tiled is a bootstrap rather than a live source,
 and that walking off a ledge leaves Mario one jump rather than two.
+
+Item 5's beat is a live edit in Tiled followed by an export and a Build Level in Unity, per Peleg -
+the requirement names the tile editor separately from the Level Create script, so showing the tool
+being used answers it better than showing a finished file. That needs one thing set up beforehand:
+`Level01.tmx` re-synced from the final `Level01.txt` the same way Stage 5 Step 3 does it, so the
+on-camera edit is a small addition on top of the real level and pressing Export adds only that
+change instead of replacing everything the Tile Placer authored.
 
 ## Notes / Decisions Log
 
@@ -790,6 +888,35 @@ _(append entries here as we make design decisions.)_
       than fixed here, per Peleg: nothing else in the exercise depends on it, the axe's own 10s
       lifetime clears a stranded one on its own, and the on-top case that actually comes up in play
       already works.
+- Stage 5 design decisions, made across the stage's own discussion before anything was touched:
+    - The three tiles go in through Tiled's own `Add Tiles` rather than a hand-edited `.tsx` -
+      Peleg's call, since item 5 names the tile editor separately from the Level Create script and
+      the video is stronger for showing the tool actually being used. The cost is that Tiled picks
+      the ids, so they have to be added one at a time in the order bolt, rock, cloud; a multi-select
+      would take the file dialog's alphabetical order and hand id 13 to the cloud, which fails
+      silently rather than loudly because every existing cloud in the level would simply come back
+      as a bolt.
+    - `Level01.tmx` is re-synced by regenerating its `<data>` block from `Level01.txt` rather than
+      by repainting in Tiled, because the gap turned out to be 41 cells rather than the four the
+      plan had recorded before Stages 1, 3 and 4 filled the level with test tiles. The conversion is
+      free (a map id and a gid are the same number here), and it leaves Peleg editing the current
+      level in Tiled instead of reconstructing it first. He still authors freely on top - the point
+      of the regeneration is only to skip the reconstruction.
+    - The all-tiles image covers the four tiles of items 1-4, not all sixteen - Peleg's call, and
+      the requirement's own wording supports it, since "כולם" attaches to the four tiles the
+      sentence just named. Tiled's tileset panel already shows all sixteen if the wider reading ever
+      needs answering, at the cost of a screenshot.
+    - Nothing is added to `LevelWindow` to make the tooling half of item 5 look like work. There is
+      no code to change, and inventing some would be building for an examiner rather than a need,
+      against this project's own rule about not generalizing early. The demo that makes the
+      data-driven design visible costs nothing instead: pull a row out of `TilePrefabMap`, press
+      Build, and let the existing `Tile ids skipped, nothing mapped to them` warning name the id.
+    - `MarioTiles.tsx`'s coin entry pointed at `Tiles/Sprite_Coin 1.png`, a filename that doesn't
+      exist in `Tiles01/Tiles/`, so the coin has been a broken tile in Tiled since the tileset was
+      built. Found while checking this stage's assumptions rather than reported by anything. Fixed
+      first and by hand, because a collection tileset offers no relink for a single tile, deleting
+      and re-adding would renumber it and break every coin in the map, and saving a tileset with a
+      broken entry in it is a good way to lose the entry.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own
