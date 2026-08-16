@@ -520,14 +520,28 @@ parent with nothing assigned, which is better than where this started rather tha
 it. One accepted cost: clearing the field by hand no longer sticks, since the next repaint finds
 `World` again.
 
-### Stage 7 — Deleting objects from the tile placer `[ ]`
+### Stage 7 — Deleting objects from the tile placer `[x]`
 
-Exercise item 7, and the only genuinely new tooling work. The window can currently only replace
-what's in a cell as a side effect of placing something; there is no way to delete without placing.
+Exercise item 7, and the only genuinely new tooling work in the exercise. The window could only
+replace what's in a cell as a side effect of placing something; there was no way to delete without
+placing.
 
-An erase mode alongside the placing toggle, reusing the existing `ClearCell` helper, with the
-Scene view preview changing color so the active mode is visible without looking back at the
-window. Playtest is the save/build round trip after erasing.
+`placingEnabled` became a three-state `Mode` (Off, Place, Erase) rather than gaining a second bool
+beside it, so "placing off, erasing on" can't exist as a state something would have to interpret.
+Erasing reuses `ClearCell`, which `Place` already called to stop two objects stacking in one cell,
+with the one change that it now returns how many objects it destroyed so a click on an empty cell
+stays silent instead of claiming it deleted something. Same undo collapse `Place` uses, so one
+Ctrl+Z restores a whole cell rather than one press per object. The Scene view preview turns red
+while erasing, which is where the mode needs to be visible since that's where the cursor is, and
+the Tile dropdown greys out because erasing doesn't read it.
+
+**Confirmed working** by Peleg via `OutputLogsTemp.txt`, cross-checked against the level file
+rather than the object counts. Three erases at (8, 15), (9, 15) and (10, 15) logged one object
+each, and exactly those three cells - all coins - came back zeroed in the saved file with nothing
+else moved, 154 down to 151 across both Save and Build. No `Erased 0 object(s)` lines anywhere, so
+clicks on empty cells stayed quiet. Undo confirmed on both paths: a placed heart in the log left no
+trace in the saved file because it had been undone, which is the place path, and the erase path was
+tested separately afterwards.
 
 ### Stage 8 — Double jump and the in-air extension `[ ]`
 
@@ -990,6 +1004,28 @@ _(append entries here as we make design decisions.)_
       the same paragraph of explanation for why a scene reference dies but an asset reference
       doesn't. Duplicating code is cheap at that size; duplicating the explanation is what makes it
       worth a file.
+- Stage 7 design decisions, made across the stage's own discussion before any code was written:
+    - One `Mode` enum replacing the `placingEnabled` bool, not a second bool beside it. Two bools
+      allow "placing off, erasing on", a state with no meaning that something would nonetheless have
+      to decide what to do with. `EnemyRangedAttack`'s own private nested `enum Direction` is the
+      precedent for the shape.
+    - `Mode` stays un-serialized, keeping the reason `placingEnabled` already had: an active mode
+      stops the Scene view selecting on click, so it should be off after every restart. The argument
+      is stronger for erasing, since reopening Unity one click away from deleting a tile is worse
+      than one click away from placing one.
+    - Right-click to erase was rejected, though it needs no UI at all. The README already records
+      that this window places on left click precisely because right click is the Scene view's own
+      camera control, and alt-click is Unity's orbit and already excluded. Shift-click would work,
+      but a destructive action on an undiscoverable modifier is worse than a visible mode, and a
+      visible mode is what the video can show.
+    - No interface and no strategy object for the two modes, which is worth saying out loud because
+      the OCP material invites one. The click branch is a two-way `if`, not the growing chain that
+      argument is aimed at, and an `IPlacerMode` for two cases in an editor window is the exact
+      abstraction-for-a-hypothetical-need this project keeps declining. Items 5 and 6 are where this
+      project's OCP answer already lives.
+    - The hover preview deliberately doesn't indicate whether the cell under the cursor holds
+      anything, though it would be cheap and erasing is destructive. The exercise doesn't ask, and
+      the log says what happened immediately afterwards.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own

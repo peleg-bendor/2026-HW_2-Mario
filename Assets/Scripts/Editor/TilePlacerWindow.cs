@@ -2,11 +2,14 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-// Editor window for stamping one tile at a time into the scene by clicking, alongside the level
-// window's all-at-once build. It places only what the tile prefab map already knows about, so
-// everything it creates can be written back out as level data.
+// Editor window for editing the level one cell at a time by clicking, alongside the level window's
+// all-at-once build: stamping a tile into a cell, or clearing whatever a cell holds. It places only
+// what the tile prefab map already knows about, so everything it creates can be written back out as
+// level data.
 public class TilePlacerWindow : EditorWindow
 {
+    private enum Mode { Off, Place, Erase }
+
     [SerializeField] private TilePrefabMap tilePrefabMap;
     [SerializeField] private GameObject levelParent;
     [SerializeField] private int selectedIndex;
@@ -15,9 +18,10 @@ public class TilePlacerWindow : EditorWindow
     // the object this project keeps every tile under.
     [SerializeField] private string levelParentName = "World";
 
-    // Off by default and easy to switch back off, because while it's on the Scene view stops
-    // selecting things on click.
-    private bool placingEnabled;
+    // Off after every restart, and deliberately not serialized: while a mode is active the Scene
+    // view stops selecting on click, and reopening Unity one click away from deleting a tile is
+    // worse than one click away from placing one.
+    private Mode mode;
 
     [MenuItem("Tools/Tile Placer")]
     public static void ShowWindow()
@@ -46,7 +50,7 @@ public class TilePlacerWindow : EditorWindow
         List<TilePrefabMap.Entry> entries = UsableEntries();
         if (entries.Count == 0 || levelParent == null)
         {
-            placingEnabled = false;
+            mode = Mode.Off;
             EditorGUILayout.HelpBox("Assign a parent and a tile prefab map with at least one prefab in it.", MessageType.Info);
             return;
         }
@@ -57,17 +61,32 @@ public class TilePlacerWindow : EditorWindow
         for (int i = 0; i < entries.Count; i++)
             names[i] = entries[i].tileId + " - " + entries[i].prefab.name;
 
-        selectedIndex = EditorGUILayout.Popup("Tile", selectedIndex, names);
-        placingEnabled = EditorGUILayout.Toggle("Placing Enabled", placingEnabled);
+        // Disabled rather than hidden while erasing, which doesn't read it. Leaving it live would
+        // suggest the choice still changes something.
+        using (new EditorGUI.DisabledScope(mode == Mode.Erase))
+        {
+            selectedIndex = EditorGUILayout.Popup("Tile", selectedIndex, names);
+        }
 
-        EditorGUILayout.HelpBox(placingEnabled
-            ? "Click in the Scene view to place. Clicking won't select anything while this is on."
-            : "Placing is off, so the Scene view behaves normally.", MessageType.None);
+        mode = (Mode)EditorGUILayout.EnumPopup("Mode", mode);
+
+        EditorGUILayout.HelpBox(ModeHelp(), MessageType.None);
+    }
+
+    private string ModeHelp()
+    {
+        if (mode == Mode.Place)
+            return "Click in the Scene view to place. Clicking won't select anything while this is on.";
+
+        if (mode == Mode.Erase)
+            return "Click in the Scene view to delete everything in that cell.";
+
+        return "Off, so the Scene view behaves normally.";
     }
 
     private void OnSceneGUI(SceneView sceneView)
     {
-        if (!placingEnabled || levelParent == null)
+        if (mode == Mode.Off || levelParent == null)
             return;
 
         List<TilePrefabMap.Entry> entries = UsableEntries();
@@ -82,7 +101,9 @@ public class TilePlacerWindow : EditorWindow
         if (!TryGetCell(current.mousePosition, out Vector3 cell))
             return;
 
-        Handles.color = Color.yellow;
+        // The only place the active mode shows up while looking at the scene rather than the
+        // window, which is where the cursor already is when a click is about to happen.
+        Handles.color = mode == Mode.Erase ? Color.red : Color.yellow;
         Handles.DrawWireCube(levelParent.transform.TransformPoint(cell), Vector3.one);
 
         if (current.type == EventType.MouseMove)
@@ -92,7 +113,11 @@ public class TilePlacerWindow : EditorWindow
         // than someone placing a tile.
         if (current.type == EventType.MouseDown && current.button == 0 && !current.alt)
         {
-            Place(entries[Mathf.Clamp(selectedIndex, 0, entries.Count - 1)].prefab, cell);
+            if (mode == Mode.Erase)
+                Erase(cell);
+            else
+                Place(entries[Mathf.Clamp(selectedIndex, 0, entries.Count - 1)].prefab, cell);
+
             current.Use();
         }
     }
@@ -156,9 +181,28 @@ public class TilePlacerWindow : EditorWindow
         Debug.Log("Placed " + prefab.name + " at (" + cell.x + ", " + cell.y + ")");
     }
 
-    private void ClearCell(Vector3 cell)
+    private void Erase(Vector3 cell)
+    {
+        int undoGroup = Undo.GetCurrentGroup();
+
+        int removed = ClearCell(cell);
+        if (removed == 0)
+            return;
+
+        // Collapsed the same way placing is, so one Ctrl+Z brings back everything the click took
+        // rather than one press per object.
+        Undo.SetCurrentGroupName("Erase Tile");
+        Undo.CollapseUndoOperations(undoGroup);
+
+        Debug.Log("Erased " + removed + " object(s) at (" + cell.x + ", " + cell.y + ")");
+    }
+
+    private int ClearCell(Vector3 cell)
     {
         Transform parent = levelParent.transform;
+
+        // Counted so erasing can stay quiet about a cell that held nothing.
+        int removed = 0;
 
         // A cell holds one tile, since that's all the level file can store. Painting over
         // something replaces it rather than leaving two objects stacked in the same place.
@@ -167,7 +211,12 @@ public class TilePlacerWindow : EditorWindow
             Transform child = parent.GetChild(i);
             if (Mathf.RoundToInt(child.localPosition.x) == Mathf.RoundToInt(cell.x) &&
                 Mathf.RoundToInt(child.localPosition.y) == Mathf.RoundToInt(cell.y))
+            {
                 Undo.DestroyObjectImmediate(child.gameObject);
+                removed++;
+            }
         }
+
+        return removed;
     }
 }
