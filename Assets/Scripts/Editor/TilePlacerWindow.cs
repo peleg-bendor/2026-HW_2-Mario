@@ -11,6 +11,10 @@ public class TilePlacerWindow : EditorWindow
     [SerializeField] private GameObject levelParent;
     [SerializeField] private int selectedIndex;
 
+    // Defaulted rather than left empty, so a window opened for the first time already points at
+    // the object this project keeps every tile under.
+    [SerializeField] private string levelParentName = "World";
+
     // Off by default and easy to switch back off, because while it's on the Scene view stops
     // selecting things on click.
     private bool placingEnabled;
@@ -35,6 +39,7 @@ public class TilePlacerWindow : EditorWindow
     {
         tilePrefabMap = EditorGUILayout.ObjectField("Tile Prefabs", tilePrefabMap, typeof(TilePrefabMap), false) as TilePrefabMap;
         levelParent = EditorGUILayout.ObjectField("Parent", levelParent, typeof(GameObject), true) as GameObject;
+        levelParent = SceneObjectMemory.Resolve(levelParent, ref levelParentName);
 
         EditorGUILayout.Space();
 

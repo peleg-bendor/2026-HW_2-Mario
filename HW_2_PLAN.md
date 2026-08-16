@@ -480,11 +480,45 @@ the 154. Tiled's raw export can't be inspected after the fact, since Save Level 
 the compact form, but a bad export would have built a wrong scene and the resave couldn't have
 matched.
 
-### Stage 6 — Tile placer covers every object `[ ]`
+### Stage 6 — Tile placer covers every object `[x]`
 
 Exercise item 6. Also already true by design: `TilePlacerWindow` builds its dropdown from
 `TilePrefabMap`, so its list cannot disagree with the builder's. Verification rather than
 construction — place one of each of the sixteen types, save, rebuild, confirm the round trip.
+
+Stage 5's round trip already proved most of the underlying half. Save Level recovers a tile's id
+through `PrefabUtility.GetCorrespondingObjectFromSource`, and the level came back unchanged, so 15
+of the 16 mapped prefabs are known to survive scene-to-file in both directions. The exception is id
+6, the ghost: nothing in `Level01.txt` places one, so that row has never been exercised end to end
+in either direction. What's genuinely left for this stage is the window's own dropdown, and the
+ghost.
+
+**Confirmed working** by Peleg, and by reading the saved file rather than the object count. The
+dropdown lists all 16, `1 - Sprite_Gateway` through `16 - Sprite_Cloud`. One of each was placed
+along world y = 1, below the playfield in rows the level leaves empty, then saved: ids 1 to 16
+came back in order at the cells they were clicked into, ghost included. Deleting the 16 and saving
+again returned the file to its previous 154 objects with nothing stranded, and it still matches
+`Level01.tmx` cell for cell, so nothing here left Tiled out of sync.
+
+#### Also fixed here — `Parent` didn't survive an editor restart `[x]`
+
+Found by Peleg closing and reopening Unity during this stage's testing, and the other half of a fix
+Stage 3 already made once. Both windows' `Level File` and `Tile Prefabs` came back assigned while
+`Parent` came back empty, because the first two are assets and serialize as a GUID, while a scene
+`GameObject` has only a per-session instance id and a window's saved layout has nothing durable to
+write. That's also why Stage 3's `[SerializeField]` fix looked complete: instance ids survive a
+script recompile, so the field held through every domain reload and only broke on a full restart.
+
+Fixed by serializing the object's *name* alongside the reference and looking it up again whenever
+the reference is empty, in a shared `SceneObjectMemory` helper rather than the same four lines and
+the same non-obvious explanation written into both windows - the two-real-use-cases threshold this
+project used for `SC_Floor.IsAboveTile`. `GlobalObjectId` would survive renames and hierarchy moves
+too, and was turned down: the only thing being pointed at is a root object called `World` that the
+whole project's conventions already depend on, so it would be robustness against a case that can't
+arise. The name defaults to `"World"`, so a window opened for the first time now resolves its own
+parent with nothing assigned, which is better than where this started rather than merely back to
+it. One accepted cost: clearing the field by hand no longer sticks, since the next repaint finds
+`World` again.
 
 ### Stage 7 — Deleting objects from the tile placer `[ ]`
 
@@ -611,6 +645,10 @@ work rather than the first attempt.
 Everything after that is Unity-side: `Tools → Tile Placer` for the real placement work, putting
 the new tile types where each can be demonstrated on camera, then `Save Level` and `Build Level`
 to confirm the round trip.
+
+Leaves one thing owed to Stage 10, because the Tile Placer work makes `Level01.tmx` stale the
+moment it starts: re-sync the map from the finished `Level01.txt` before recording anything, or the
+on-camera Export replaces the authored level with whatever Tiled still remembers.
 
 #### Step 3 — Full playthrough `[ ]`
 
@@ -936,6 +974,22 @@ _(append entries here as we make design decisions.)_
       first and by hand, because a collection tileset offers no relink for a single tile, deleting
       and re-adding would renumber it and break every coin in the map, and saving a tileset with a
       broken entry in it is a good way to lose the entry.
+- Stage 6 design decisions:
+    - Nothing was added to `TilePlacerWindow` either. Its dropdown is built from
+      `TilePrefabMap.Entries`, so item 6's "including the objects that already existed" was answered
+      by the same asset that answered item 5, and the stage was testing rather than building. Two
+      items in a row where the deliverable is an explanation is worth knowing before the video is
+      scripted: items 5 and 6 are one design decision, and item 7 is where the tooling work is.
+    - `Parent` is remembered by name rather than by `GlobalObjectId`. The latter is the general
+      answer and survives renames and hierarchy moves; the thing being pointed at here is a root
+      object called `World` that the level pipeline, the README and the hierarchy conventions all
+      already assume, so the general answer would be guarding a case that can't happen. Serializing
+      the name also let the default do something the old code never did, which is find the parent
+      with nothing assigned at all.
+    - The `SceneObjectMemory` helper exists because both windows needed the same four lines *and*
+      the same paragraph of explanation for why a scene reference dies but an asset reference
+      doesn't. Duplicating code is cheap at that size; duplicating the explanation is what makes it
+      worth a file.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own
