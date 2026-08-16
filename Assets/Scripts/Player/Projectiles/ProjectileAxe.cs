@@ -22,16 +22,22 @@ public class ProjectileAxe : MonoBehaviour
     // this, an axe spawning at his position counts as instantly reclaimed and vanishes.
     private bool hasLanded = false;
 
-    // What a landed axe is frozen against. Checked every frame so a tile that later disables its
-    // own collider - a disappearing floor tile vanishing under it - lets the axe fall again
-    // instead of staying locked in mid-air forever.
+    // What a landed axe is frozen against. Contact with it is checked every frame, so a support
+    // that disappears and one that slides out from under the axe both drop it back into a fall
+    // rather than leaving it locked in mid-air.
     private Collider2D restingOn;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
-        if (spriteRenderer != null)
+
+        if (rb == null)
+            Debug.LogWarning("ProjectileAxe: no Rigidbody2D found, the axe will not fly or land");
+
+        if (spriteRenderer == null)
+            Debug.LogWarning("ProjectileAxe: no SpriteRenderer found, the axe will not fade out");
+        else
             baseColor = spriteRenderer.color;
     }
 
@@ -55,7 +61,7 @@ public class ProjectileAxe : MonoBehaviour
             Destroy(gameObject);
         }
 
-        if (hasLanded && (restingOn == null || !restingOn.enabled))
+        if (hasLanded && (restingOn == null || rb.IsTouching(restingOn) == false))
             ResumeFalling();
     }
 
@@ -64,7 +70,9 @@ public class ProjectileAxe : MonoBehaviour
         if(rb != null)
         {
             transform.localScale = new Vector3(direction, 1, 1);
-            rb.AddForce(new Vector2(direction * speedX, speedY));
+            // Impulse, not Force: a one-shot push has to be applied as one, or only a single
+            // physics step's worth of it ever becomes velocity.
+            rb.AddForce(new Vector2(direction * speedX, speedY), ForceMode2D.Impulse);
         }
     }
 
@@ -83,7 +91,7 @@ public class ProjectileAxe : MonoBehaviour
                 return;
             }
 
-            if (col.gameObject.tag != "Player")
+            if (col.gameObject.tag != "Player" && rb != null)
             {
                 // Freezing every constraint is what makes a landed axe rest in place. It also
                 // makes it a solid obstacle, which is why a patrolling enemy turns around at one.
@@ -111,7 +119,7 @@ public class ProjectileAxe : MonoBehaviour
     // rather than a second copy of that logic.
     private void ResumeFalling()
     {
-        Debug.Log("Axe's support vanished, falling again");
+        Debug.Log("Axe lost its support, falling again");
         hasLanded = false;
         restingOn = null;
         rb.linearVelocity = Vector2.zero;

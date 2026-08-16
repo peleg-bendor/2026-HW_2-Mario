@@ -107,8 +107,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ad6cf4589dd248418efce6be6a520f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileAxe
-  speedX: 500
-  speedY: 30
+  speedX: 10
+  speedY: 2
   lifetime: 10
   warningDuration: 3
 --- !u!50 &2487451591007417260

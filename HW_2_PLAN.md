@@ -543,7 +543,7 @@ clicks on empty cells stayed quiet. Undo confirmed on both paths: a placed heart
 trace in the saved file because it had been undone, which is the place path, and the erase path was
 tested separately afterwards.
 
-### Stage 8 — Double jump and the in-air extension `[ ]`
+### Stage 8 — Double jump and the in-air extension `[x]`
 
 Exercise item 8: an extension method reporting whether the player is in the air, used to allow a
 second jump, with the double jump recharging on landing.
@@ -564,7 +564,7 @@ with its own comments explaining the width factor and the corner-perch case it w
 Held before any code, same as every stage. Full outcome in the Decisions Log; the steps below are
 what it settled on.
 
-#### Step 2 — The extension `[ ]`
+#### Step 2 — The extension `[x]`
 
 New `Assets/Scripts/Extensions/` folder, holding `GroundedExtension.cs` - the lesson's own file and
 class name, so the parallel is immediate to anyone comparing the two.
@@ -580,7 +580,7 @@ project-specific helper rather than a general Unity one. The probe's width facto
 `const` (it describes the probe's own shape); `groundProbeDepth` stays serialized on `PlayerJump`
 and is passed in, so it remains tunable per object.
 
-#### Step 3 — `PlayerJump` `[ ]`
+#### Step 3 — `PlayerJump` `[x]`
 
 The `isJumping` bool becomes `jumpsUsed`, counting jumps spent since the last landing, against a
 serialized `maxJumps` defaulting to 2. `SC_Floor.OnFloorCollision` resets it, still guarded so only
@@ -594,7 +594,7 @@ Two comments need rewriting rather than adjusting: the file header still describ
 owning "whether a jump is still in progress", and the two-condition comment inside `Jump()`
 explains logic that no longer exists.
 
-#### Step 4 — Playtest `[ ]`
+#### Step 4 — Playtest `[x]`
 
 Two jumps and no third; recharge on landing; walking off a ledge leaves exactly one jump; and no
 regression in the corner-perch case the current probe was built for. Added from this stage's
@@ -603,17 +603,39 @@ into a fall (the velocity zeroing), that a rock tile vanishing underfoot leaves 
 the same way a ledge does, and that riding a cloud reads as grounded and landing back on one
 recharges normally.
 
+**Confirmed working** by Peleg in the editor and via `OutputLogsTemp.txt`, read line by line rather
+than taken on the summary. Fifteen `PlayerJump` lines across one session, every transition
+coherent: a ground jump and its double (`(1 of 2)` then `(2 of 2)`) followed by
+`Jump ignored - Mario has to land before jumping again` on the third press, and six
+`Mario landed on floor` lines that strictly alternate with jumps - never two in a row, so the
+`jumpsUsed > 0` guard held across ordinary floor walking rather than logging a landing per tile.
+The ledge rule fired twice on its own, at both places a `(2 of 2)` appears with no `(1 of 2)`
+before it and a counter known to be zero going in. A spike hit and respawn landed between two of
+those jumps and left no state behind: the next jump after it started from `(1 of 2)`.
+
+The three things the log physically can't show were checked in the editor separately and all
+passed: the double jump reaching the same height taken mid-fall as at the apex (the only part of
+the change that is purely feel), the rock tile vanishing underfoot handing back exactly one
+recovery jump, and the corner perch still reading as grounded. Committed and pushed.
+
 `maxJumps` needs no Inspector work - a new field takes its code default - but should be eyeballed
 on the prefab rather than assumed. Setting it to 3 for a triple jump and back is also the cheapest
 demo of why the number is serialized at all.
 
-### Stage 8.5 — Projectile problems found along the way `[ ]`
+### Stage 8.5 — Projectile problems found along the way `[x]`
 
 No exercise item asks for any of this. Three things turned up while building other stages, none of
 them load-bearing; they are collected here rather than fixed on the spot because the required items
 are worth more. One of the three is already done, since it turned out to cost nothing.
 
-#### An axe frozen against a moving tile's side `[ ]`
+#### Step 1 — Design discussion `[x]`
+
+Held before any code, same as every stage. Full outcome in the Decisions Log; the steps below are
+what it settled on. Two things came out of it beyond the fixes themselves: the plan's claim that
+Stage 4's log already vindicates the riding-on-top case turned out to be wrong, and a question
+about clouds sliding through terrain got asked and answered (leave it, see the Decisions Log).
+
+#### Step 2 — An axe frozen against a moving tile's side `[x]`
 
 A real bug found during Stage 4's playtest.
 
@@ -629,16 +651,87 @@ Two things keep this small. The axe despawns on its own `lifetime` (10s, fading 
 stranded one clears itself within seconds. And an axe landing on *top* of a cloud already rides
 along correctly, which is the case that actually comes up in play.
 
-The fix worth making generalizes Stage 3's rule rather than adding a second one beside it: replace
-the `restingOn.enabled` check in `ProjectileAxe.Update` with one that asks whether the axe is still
-touching `restingOn` at all (`Collider2D.IsTouching`). "My support is gone" then covers a collider
-that vanished and one that moved out from under it through the same branch, and the riding-on-top
-case is untouched because contact holds the whole way. Two known costs: it edits code Stage 3
-confirmed working, so the disappearing-tile case has to be re-tested alongside it, and a cloud
-sliding *into* a frozen axe keeps contact, so the axe stays put while the tile passes through it
-for a moment.
+The fix generalizes Stage 3's rule rather than adding a second one beside it: replace the
+`restingOn.enabled` check in `ProjectileAxe.Update` with one asking whether the axe is still
+touching `restingOn` at all. `rb.IsTouching(restingOn)` rather than `Collider2D.IsTouching`, since
+the rigidbody is already cached and the axe has one collider, so nothing new needs fetching. "My
+support is gone" then covers a collider that vanished and one that moved out from under it through
+the same branch. The `restingOn == null` clause stays: it catches the tile object being destroyed
+outright, which `IsTouching` cannot be asked about.
 
-#### Fireball and garlic airtime `[x]`
+Folded in alongside it, since it is four lines in the same file and cannot change behaviour:
+`Awake` warns on a null `Rigidbody2D`/`SpriteRenderer` like every other script in the project
+does, and the landing branch stops dereferencing `rb` unguarded twelve lines after `Attack` checks
+it for null.
+
+Three costs, one of them bigger than the plan first recorded:
+
+- It edits code Stage 3 confirmed working, so the disappearing-tile case has to be re-tested.
+- A cloud sliding *into* a frozen axe keeps contact, so the axe stays put while the tile passes
+  through it. Both bodies are immovable to each other (the axe is `FreezeAll`, the tile Kinematic),
+  so this is a visible overlap for a second or two rather than a momentary one, and only then does
+  the axe drop.
+- The riding-on-top case is a fresh test, not a passed one. Stage 4's log is no evidence for it:
+  under the old `restingOn.enabled` check a cloud's collider is enabled throughout, so that branch
+  could never have fired regardless of what contact was doing.
+
+The first thing to check after the paste is the ordinary case, not the bug case. A landed axe on
+static floor sleeps, and the fix assumes `IsTouching` still reports true for a sleeping resting
+contact. If that assumption is wrong every landed axe unfreezes, drops, re-lands and repeats -
+loud in the log rather than subtle, so a plain throw onto ordinary floor should produce one
+`Axe landed` and nothing after it.
+
+One log message changed with it: `Axe's support vanished, falling again` became `Axe lost its
+support, falling again`, since "vanished" was only ever true for the disappearing tile and the
+sliding-away case is the point of the fix.
+
+**Confirmed working** by Peleg in the editor and via `OutputLogsTemp.txt`, read event by event
+rather than on the summary. Four throws across 2088 lines covered all three cases, one of them
+unplanned:
+
+- **The bug.** Throw 1 lost its support mid-patrol with no `Disappearing floor tiles` event
+  anywhere near it - the rock tiles had already vanished before that axe even landed - so the only
+  thing that could have moved out from beside it was a cloud.
+- **Stage 3's case, re-tested without meaning to.** The same throw lost its support a second time
+  as the *immediately next event* after `Disappearing floor tiles vanished`, then fell, re-landed
+  and was reclaimed.
+- **Riding on top, the genuinely new test.** Throw 4 logged `Axe landed`, then nine clouds turning
+  toward home, then nine turning toward the far side, then the pickup - two complete patrol legs,
+  roughly four seconds of contact held by the carry write, with no drop in between. This is the
+  case the old `restingOn.enabled` check could never have validated either way.
+
+The sleeping-contact risk cleared twice over: throws 3 and 4 both rested through a full
+appear/vanish cycle without a spurious drop, and no landing anywhere in the log produced more than
+one support loss. No `Axe despawned` lines at all, so nothing was stranded long enough to time out.
+Throw 2 never landed because it destroyed a vampire through `ProjectileAxe`'s enemy branch, which
+incidentally confirms that branch still runs ahead of the landing check.
+
+#### Step 3 — The axe throw's missing `ForceMode2D` `[x]`
+
+`ProjectileAxe.Attack` calls `AddForce` with no `ForceMode2D`, so it takes the default `Force`
+mode and one call lasts exactly one physics step. Pass `ForceMode2D.Impulse` and retune
+`Axe.prefab` to reproduce today's throw exactly: **`speedX` 500 -> 10, `speedY` 30 -> 0.6**. The
+script's own `speedX`/`speedY` defaults of `5f` stay as they are, the same call made about
+`jumpSpeed = 100` in Stage 8 - the prefab is what runs, and retuning a number with no effect is
+noise in the diff.
+
+The correct outcome is that the throw is indistinguishable from today's, so the check is a feel
+test rather than a log read. Kept as its own step and its own commit for exactly that reason: if
+the arc looks off, it should be obvious that the retune is the cause and not the support check.
+
+**Confirmed working** by Peleg in the editor: the throw came back indistinguishable from before,
+which is what the exact retune was for.
+
+Then a deliberate change on top of it, not part of the fix: `speedY` 0.6 -> 2, per Peleg, because
+the throw reads better with a visible arc. Worth separating from the retune in the commit history,
+since one is "make the code mean what it does" and the other is a tuning preference the bug had
+been hiding. It only became an easy call to make because the fix turned `speedX`/`speedY` into
+literal units per second - at mass 1 under `Impulse`, `speedY` is the launch speed straight up, so
+the rise in tiles is `speedY * speedY / 19.62` and the number can be reasoned about instead of
+guessed at. The axe now rises about 0.2 tiles and lands about 6.5 tiles out, against 0.02 and 4.6
+before. `speedX` stays at 10.
+
+#### Already done — Fireball and garlic airtime `[x]`
 
 Not part of Stage 8.5's bug and not deferred with it - raised by Peleg during Stage 5's discussion
 and fixed on the spot, since it turned out to be two Inspector values and no code.
@@ -652,21 +745,6 @@ reached and raising it alone would have done nothing.
 
 Fireball `Gravity Scale` 0.5 -> 0 and both `lifetime` values 3 -> 6. The fireball and the garlic now
 have the same flight model, which is what they always read as on screen.
-
-#### A latent bug in the axe throw, found alongside it `[ ]`
-
-Nobody asked for this and nothing depends on it; recorded because it is real and nothing else has
-it written down. `ProjectileAxe.Attack` calls `AddForce(new Vector2(direction * speedX, speedY))`
-with no `ForceMode2D`, so it takes the default `Force` mode and one call lasts exactly one physics
-step. `Axe.prefab`'s `speedX: 500` and `speedY: 30` therefore land as roughly 10 units/second
-sideways and 0.6 up. Both `ProjectileFireball` and `ProjectileGarlic` pass `ForceMode2D.Impulse`
-and carry the comment explaining why, so this codebase documents the lesson twice and applies it to
-two projectiles out of three.
-
-The throw feels fine as it is, because those two numbers were tuned against the behaviour the bug
-produces. What the bug actually costs is that both of them silently depend on the project's Fixed
-Timestep. Fixing it means passing `Impulse` and retuning: with mass 1, `speedX` 500 becomes 10 to
-reproduce today's throw exactly.
 
 ### Stage 9 — The full level `[ ]`
 
@@ -1114,6 +1192,55 @@ _(append entries here as we make design decisions.)_
       tile could have; a cloud keeps its collider enabled throughout, so riding one reads as
       grounded and landing back on one fires `OnCollisionEnter2D` normally because contact
       genuinely ended.
+- Stage 8.5 design decisions, made across the stage's own discussion before any code was written:
+    - Clouds pass straight through earth and rock tiles and will keep doing so, per Peleg after
+      asking whether bumping would be nicer. A Kinematic `Rigidbody2D` moved with `MovePosition`
+      takes no collision response at all, and a static floor tile has no `Rigidbody2D` to push
+      back with, so neither object is something the solver may move. Making them bump is about ten
+      lines (an `OverlapBox` at next frame's position filtered to `SC_Floor`, flip the target if
+      occupied) and was turned down for two reasons that outlast the code: a cloud that turns early
+      falls out of phase with its neighbours permanently, which kills the free lockstep several
+      clouds in a row currently have, and a cloud's travel would stop being readable off the level
+      file, since how far it goes would depend on what is painted next to it. The problem it solves
+      has a free answer instead - do not place a cloud where its two-cell patrol runs into a wall.
+      One argument against bumping was checked and dropped rather than kept: it would *not* break
+      the home-cell anchor, because `MoveTowards` still targets `homePosition` exactly and only the
+      far leg would shorten.
+    - The one case where pass-through plays badly rather than merely looking odd: Mario riding a
+      cloud into a wall. The carry write puts him inside solid terrain and the solver shoves him
+      back out the next step, so it reads as jitter or a squeeze rather than a stop. The authoring
+      rule above prevents it, which is the reason to actually apply that rule when Stage 9's level
+      gets built rather than only note it.
+    - `rb.IsTouching(restingOn)` over `Collider2D.IsTouching`, since `ProjectileAxe` already caches
+      its `Rigidbody2D` and has exactly one collider, so the rigidbody overload needs no second
+      `GetComponent`.
+    - The plan's own claim that Stage 4's log already covers the axe riding on top of a cloud is
+      wrong and was corrected here. Under the old `restingOn.enabled` check a cloud's collider stays
+      enabled the whole time, so the absence of `Axe's support vanished, falling again` in that log
+      proves the collider stayed enabled and nothing about whether contact held. The on-top case is
+      a fresh test under the new check.
+    - The riskiest part of the fix is the ordinary case rather than the bug case. A landed axe on
+      static floor sleeps, and the change assumes `IsTouching` still reports true for a sleeping
+      resting contact. Reasoned to be true (contacts survive sleep and are only destroyed when the
+      AABBs separate) but not proven in this engine version, so it is the first thing the playtest
+      checks. The failure mode is loud - every landed axe unfreezing, dropping and re-landing on
+      repeat - which is why it was accepted rather than designed around.
+    - Two steps and two commits rather than one, despite both landing in `ProjectileAxe.cs`. The
+      support check is verified by reading logs and the throw retune by judging an arc on screen; a
+      combined commit would make an off-looking throw ambiguous between the two.
+    - The Impulse explanation ends up in three files, which is the situation that made
+      `SceneObjectMemory` its own file in Stage 6. Accepted here because there is nothing to
+      extract: the fix is one argument on three separate calls, not duplicated code with a
+      duplicated explanation attached.
+    - The axe's own `speedX`/`speedY` script defaults stay at `5f` while the prefab moves to 10 and
+      0.6, the same call Stage 8 made about `jumpSpeed = 100`.
+    - The arc got raised afterwards (`speedY` 0.6 -> 2, per Peleg) as a separate decision from the
+      bug fix, and only became a decision at all because the fix made the number mean something.
+      Under `Force` mode, `speedY: 30` was a figure nobody could reason about without knowing the
+      Fixed Timestep; under `Impulse` at mass 1 it is the launch speed in units per second, so
+      "how high does it go" is `speedY * speedY / 19.62` tiles and the answer can be worked out
+      before touching the Inspector. The old throw rose 0.02 tiles, which is to say it was flat and
+      only looked like an arc because it was falling.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own
