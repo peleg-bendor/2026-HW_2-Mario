@@ -26,8 +26,9 @@ Stages 1-9 match Exercise 2's own item numbers exactly, which also happens to be
 order: items 1-4 create the four objects, 5-7 make the tooling handle them, 8 is independent of
 all of it, and 9 needs everything to exist first. Stage 0 gets the project versioned before any
 feature work; Stage 0.5 fixes things wrong in the inherited code before anything new is built on
-top of them. Stage 9.5 holds optional work that is explicitly not required by the exercise, and
-Stage 10 is the submission video. Each stage gets its own design discussion before code, the same
+top of them. Stage 8.5 holds a real bug found during Stage 4 that nothing else depends on, parked
+until the required items are done. Stage 9.5 holds optional work that is explicitly not required by
+the exercise, and Stage 10 is the submission video. Each stage gets its own design discussion before code, the same
 way every stage of HW1 and 1.5 did.
 
 ## Tile Roster
@@ -294,7 +295,7 @@ a moment while the surrounding tiles are solid, freed again the next time they v
 crash, no death, and nothing left stuck afterward. Confirms the design discussion's call: worth
 watching once, not worth building around.
 
-### Stage 4 — Moving floor tile `[ ]`
+### Stage 4 — Moving floor tile `[x]`
 
 Exercise item 4: a floor tile that moves 2 tiles right and 2 tiles left.
 
@@ -304,18 +305,28 @@ actually returns to, which matters because the level file stores one position pe
 tile is its own object with no grouping: the data format stores one tile per cell, and clouds
 placed side by side move in lockstep for free as long as they share a speed and start together.
 
-#### Step 1 — Design discussion `[ ]`
+#### Step 1 — Design discussion `[x]`
 
-#### Step 2 — Sprite, prefab and movement `[ ]`
+#### Step 2 — Sprite, prefab and movement `[x]`
 
-`Sprite_Cloud` imported and prefabbed with `SC_Floor` and a solid collider. Travel distance and
-step timing are serialized fields, defaulting to the 2 tiles the exercise asks for.
+`Sprite_Cloud` imported and prefabbed with `SC_Floor`, a solid collider, and a Kinematic
+`Rigidbody2D` — the project's first collider that moves every frame, and Unity's own guidance is
+that a moving collider belongs on a Kinematic body driven by `MovePosition` rather than a bare
+collider with its `Transform` overwritten directly. `travelDistance` (world units right of home,
+defaults to 2) and `speed` (units/second) are serialized fields; the tile patrols home → home +
+`travelDistance` → home, forever, with `Vector2.MoveTowards` picking the current leg's target the
+same way `PlayerMovement`'s braking already uses `MoveTowards` for a linear approach to a value.
 
-Whether this script and Stage 3's `DisappearingFloor` justify a shared `Assets/Scripts/Tiles/`
-folder is worth deciding now that a second tile-behavior script exists - deferred at Stage 3's
-design discussion for exactly this reason, since one script alone didn't earn a new folder.
+`Assets/Scripts/Tiles/` is now a folder, holding `SC_Floor`, `DisappearingFloor`, and this stage's
+`MovingFloor` — mirroring `Enemy/`'s precedent of grouping a category's behavior scripts regardless
+of file count, settled now that a second tile-behavior script actually exists to decide the
+question with, as Stage 3's design discussion deferred it to.
 
-#### Step 3 — Carrying Mario `[ ]`
+#### Step 3 — Carrying Mario `[x]`
+
+Built alongside Step 2 rather than after it, the same way Stage 2's Steps 3 and 4 collapsed
+together: carrying riders is most of what `MovingFloor`'s body does, so there was no version of
+the script that patrolled without it.
 
 The part with real risk. Mario will not be carried for free: `PlayerMovement` brakes his X
 velocity toward zero in world space every frame no key is held, which cancels the friction that
@@ -325,11 +336,41 @@ rather than velocity, so the braking doesn't fight it. It carries anything stand
 knowing what, the same instinct as `EnemyMovement` skipping the `Player` tag rather than naming
 Mario.
 
-#### Step 4 — Tile id and playtest `[ ]`
+Detection reuses `SC_Floor`'s own landed-on-top-vs-touched-from-the-side check, pulled out into a
+public static `SC_Floor.IsAboveTile` now that a second real use case for it exists.
+`MovingFloor.OnCollisionStay2D` calls it every physics step and, for anything above it, adds the
+tile's own per-frame delta straight to `col.rigidbody.position`. That single code path carries a
+landed axe (resting via `RigidbodyConstraints2D.FreezeAll`) and a patrolling enemy (driven by its
+own velocity every `FixedUpdate`) the same way, with no special case for either: constraints and
+collision response only gate what the physics solver can do to a body, not a direct script write
+to its `.position`, and a velocity-driven move and a post-solve position offset don't fight each
+other for the same reason Mario's braking doesn't.
+
+#### Step 4 — Tile id and playtest `[x]`
 
 `TilePrefabMap` row 16. Confirm Mario rides the tile in both directions, can jump off it and land
 back on it, that several clouds in a row behave as one platform, and that an enemy or a landed axe
-on top is carried too rather than being a special case.
+on top is carried too rather than being a special case — including whether the axe's frozen state
+rides along smoothly or shows any jitter against the tile's `MovePosition`-driven motion. Once the
+basics hold: deliberately stand Mario on the seam between two synced clouds and note whether being
+above both at once doubles his carried speed for that stretch — an accepted edge case from the
+design discussion, the same call Stage 3 made about being boxed in by rock tiles, not something the
+tile is built to prevent.
+
+**Confirmed working** by Peleg in the editor and via `OutputLogsTemp.txt`: Mario rides in both
+directions, jumps off and lands back on, stands still on a moving tile without being left behind
+(the braking case the whole design was built around), several clouds behave as one platform, a
+patrolling enemy is carried, and the two-cloud seam produced nothing worth building around. A
+landed axe resting on top rides along too, logged across a full patrol leg - `Axe landed` followed
+by six `Cloud tile turned back toward home` lines with no `Axe's support vanished, falling again`
+in between, then a clean `Axe picked back up`.
+
+Re-confirmed afterwards on the plain rider write, once the constraint save/clear/restore added for
+a wrong diagnosis had been deleted: an axe thrown onto a cloud top still lands and rides, with no
+spurious `Axe's support vanished, falling again`. So those four lines were never doing any work.
+
+One case is genuinely broken and deferred rather than fixed here: an axe frozen against a cloud's
+*side* is left hanging in mid-air when the tile slides away. See Stage 8.5.
 
 ### Stage 5 — Tiled tileset and the level builder `[ ]`
 
@@ -413,6 +454,32 @@ Two jumps and no third; walking off a ledge leaves one jump, not two (Peleg's ca
 doesn't say, and spending the ground jump by stepping off an edge is the behavior that makes a
 double jump feel like a recovery rather than a free second chance); recharge on landing; and no
 regression in the corner-perch case the current probe was built for.
+
+### Stage 8.5 — An axe frozen against a moving tile's side `[ ]`
+
+Not an exercise item. A real bug found during Stage 4's playtest, parked here rather than fixed on
+the spot because nothing else in Exercise 2 depends on it and the items above are worth more.
+
+A landed `ProjectileAxe` rests by hard-freezing its `Rigidbody2D` (`RigidbodyConstraints2D.
+FreezeAll`), so an axe that stops against a cloud tile's vertical face is held up by nothing but
+that freeze. `MovingFloor` only carries what passes the above-the-tile check, correctly - dragging
+anything merely touching a side would haul Mario sideways through walls too - so the tile slides
+away and leaves the axe hanging in empty space. Stage 3's own fix for the disappearing tile can't
+see this version: it watches `restingOn.enabled`, and a moving collider stays enabled the whole
+time.
+
+Two things keep this small. The axe despawns on its own `lifetime` (10s, fading from 7s), so a
+stranded one clears itself within seconds. And an axe landing on *top* of a cloud already rides
+along correctly, which is the case that actually comes up in play.
+
+The fix worth making generalizes Stage 3's rule rather than adding a second one beside it: replace
+the `restingOn.enabled` check in `ProjectileAxe.Update` with one that asks whether the axe is still
+touching `restingOn` at all (`Collider2D.IsTouching`). "My support is gone" then covers a collider
+that vanished and one that moved out from under it through the same branch, and the riding-on-top
+case is untouched because contact holds the whole way. Two known costs: it edits code Stage 3
+confirmed working, so the disappearing-tile case has to be re-tested alongside it, and a cloud
+sliding *into* a frozen axe keeps contact, so the axe stays put while the tile passes through it
+for a moment.
 
 ### Stage 9 — The full level `[ ]`
 
@@ -651,6 +718,78 @@ _(append entries here as we make design decisions.)_
       to one that stays enabled but moves - which is what Stage 4's moving floor tile does, so a
       landed axe resting on or against a cloud is a case that stage's own design needs to consider
       separately, not something this fix already covers.
+- Stage 4 design decisions, made across the stage's own discussion before any code was written:
+    - `Assets/Scripts/Tiles/` is created now and holds `SC_Floor`, `DisappearingFloor`, and
+      `MovingFloor` together, not just the two behavior scripts. `Enemy/` is the precedent - four
+      files grouped by category regardless of count - and leaving `SC_Floor` behind at `Scripts/`
+      root would split one category across two locations for no reason. A plain file move inside
+      the editor, so the prefab's script reference survives on its GUID with nothing to reassign.
+    - The Cloud prefab gets a Kinematic `Rigidbody2D`, moved with `MovePosition`, rather than a bare
+      collider with its `Transform` overwritten directly. Every other floor tile has no
+      `Rigidbody2D` at all, which is fine for something that never moves, but this would be the only
+      moving collider in the project without one - against Unity's own guidance, which is to drive
+      a moving collider from a Kinematic body rather than force the physics engine to keep pulling a
+      "static" collider out of and back into the broadphase every frame. Costs Peleg one extra
+      Inspector step (Body Type to Kinematic) beyond what the other tile prefabs needed.
+    - Movement is continuous, not the discrete stepped motion the plan's original "step timing"
+      phrasing could be read as - `Vector2.MoveTowards` toward whichever end of the patrol is
+      currently the target, flipping the target on arrival, driven by two serialized fields:
+      `travelDistance` (world units right of home, defaults to 2) and `speed` (units/second,
+      matching `EnemyMovement`'s own field name and role). The patrol loops forever from scene load
+      (home → +2 → home → +2 → ...), the same as `DisappearingFloor`'s cycle never stopping.
+    - No coroutine or `Start()`-timing trick is needed to keep several clouds in lockstep, unlike
+      `DisappearingFloor`'s reliance on every instance's `Start()` landing on the same frame.
+      `MoveTowards`-driven motion from `FixedUpdate` is a pure function of elapsed fixed ticks since
+      each instance began, with no `WaitForSeconds` to drift - same `speed` and `travelDistance`
+      keeps same-speed tiles bit-for-bit synchronized for a different reason than `DisappearingFloor`
+      gets its sync from, not the same mechanism.
+    - Rider carrying reuses `SC_Floor.OnCollisionEnter2D`'s own landed-on-top-vs-touched-from-the-
+      side check rather than a new trigger zone or per-frame `GetContacts` polling, since the
+      geometry test - is the other object's centre above the tile's by roughly its own collider's
+      half-height - is identical either way. Pulled out into a public static
+      `SC_Floor.IsAboveTile(Collision2D, Transform)`, called from both `SC_Floor` and the new
+      `MovingFloor.OnCollisionStay2D`, rather than duplicated - the second real use case the
+      project's own rule about not generalizing early was waiting for. `OnCollisionStay2D` (fired
+      every physics step two colliders remain in contact) reuses the tile's existing solid collider,
+      so nothing new needs Inspector setup.
+    - For a contact that passes the check, `MovingFloor` adds its own per-frame delta straight to
+      `col.rigidbody.position`, not velocity, and not through `MovePosition` - that call moves the
+      tile's own body, this one moves whatever is resting on it. This one code path was checked
+      against both a landed axe and a patrolling enemy without needing either as a special case:
+      `RigidbodyConstraints2D.FreezeAll` (how a landed `ProjectileAxe` rests, see the bullet above)
+      only blocks what the physics solver's own forces and collision response can do to a body, not
+      a plain script write to `.position`; and `EnemyMovement`'s own velocity writes and
+      `MovingFloor`'s post-solve position offset move the same rigidbody through two different
+      channels that don't contend, the same property Mario's braking not fighting the carry already
+      relied on. Whether this holds up smoothly against the axe's frozen state specifically - no
+      jitter, no lag - is a playtest check at the end of Step 4 rather than something taken on faith.
+    - One known edge case, deliberately not designed around, the same call Stage 3 made about being
+      boxed in by rock tiles: Mario standing exactly on the seam between two synced Cloud tiles can
+      get flagged as "above" both at once, so both add their delta the same physics step and his
+      carried speed doubles for as long as he straddles it. Left as a playtest note at the end of
+      Step 4 rather than bookkeeping to prevent it.
+    - Confirmed by reading `LevelWindow.Save()` rather than assumed: it reads each tile's
+      `transform.localPosition` at the moment the button is clicked, and MonoBehaviour lifecycle
+      methods only run in Play mode, so a Cloud tile never actually moves during the Edit-mode
+      authoring workflow Save Level is used in. Its home cell is always what gets saved - not a risk
+      that needed designing around.
+    - The design discussion's claim that a landed axe would be carried "with zero axe-specific code"
+      turned out right, but only after two wrong diagnoses of a symptom that was never the on-top
+      case at all. First theory: `RigidbodyConstraints2D.FreezeAll` was fighting the rider write, so
+      `MovingFloor` saved, cleared and restored the rider's constraints around it. Second theory:
+      the axe's `Rigidbody2D` falls asleep once landed (nothing writes its velocity, unlike Mario
+      and the enemy, whose `FixedUpdate`s assign `linearVelocity` every step) and Unity stops
+      sending `OnCollisionStay2D` to a sleeping body. Both were reasoned out rather than tested, and
+      both fell over when Peleg logged an axe genuinely landing on a cloud's top: it rode along
+      fine. The sleep argument misses that the carry write itself wakes the body, so a rider being
+      carried can't stay asleep. The constraint workaround was deleted afterwards rather than kept
+      as harmless insurance, since a comment explaining a problem that doesn't exist is worse than
+      no code at all.
+    - The real symptom throughout was an axe frozen against a cloud's *side*, not one resting on
+      top - the Stage 3 bug in a form Stage 3's own fix can't detect. Deferred to Stage 8.5 rather
+      than fixed here, per Peleg: nothing else in the exercise depends on it, the axe's own 10s
+      lifetime clears a stranded one on its own, and the on-top case that actually comes up in play
+      already works.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own
