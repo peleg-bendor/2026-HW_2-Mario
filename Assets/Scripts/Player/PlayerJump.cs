@@ -35,10 +35,10 @@ public class PlayerJump : MonoBehaviour
         bodyCollider = GetComponent<Collider2D>();
 
         if (rigid == null)
-            Debug.LogWarning("PlayerJump: no Rigidbody2D found, jumping will do nothing");
+            GameLog.Warning(LogCategory.Player, "No Rigidbody2D found, jumping will do nothing");
 
         if (bodyCollider == null)
-            Debug.LogWarning("PlayerJump: no Collider2D found, Mario will always read as airborne");
+            GameLog.Warning(LogCategory.Player, "No Collider2D found, Mario will always read as airborne");
     }
 
     private void Update()
@@ -53,7 +53,7 @@ public class PlayerJump : MonoBehaviour
         // jumps spent, now back on the ground - is worth acting on.
         if (jumpsUsed > 0)
         {
-            Debug.Log("Mario landed on floor");
+            GameLog.Verbose(LogCategory.Player, "Mario landed on floor");
             jumpsUsed = 0;
         }
     }
@@ -70,7 +70,7 @@ public class PlayerJump : MonoBehaviour
 
         if (jumpsUsed >= maxJumps)
         {
-            Debug.Log("Jump ignored - Mario has to land before jumping again");
+            GameLog.Info(LogCategory.Player, "Jump ignored - Mario has to land before jumping again");
             return;
         }
 
@@ -84,6 +84,6 @@ public class PlayerJump : MonoBehaviour
         rigid.AddForce(new Vector2(0, jumpSpeed), ForceMode2D.Impulse);
 
         jumpsUsed++;
-        Debug.Log("Mario jumped (" + jumpsUsed + " of " + maxJumps + ")");
+        GameLog.Info(LogCategory.Player, "Mario jumped (" + jumpsUsed + " of " + maxJumps + ")");
     }
 }

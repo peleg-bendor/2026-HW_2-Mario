@@ -20,7 +20,7 @@ public class PlayerMovement : MonoBehaviour
         rigid = GetComponent<Rigidbody2D>();
 
         if (rigid == null)
-            Debug.LogWarning("PlayerMovement: no Rigidbody2D found, Mario will not move");
+            GameLog.Warning(LogCategory.Player, "No Rigidbody2D found, Mario will not move");
     }
 
     void FixedUpdate()

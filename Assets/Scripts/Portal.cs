@@ -13,7 +13,7 @@ public class Portal : MonoBehaviour
     {
         if (col.gameObject.tag == "Player")
         {
-            Debug.Log("Mario reached the portal");
+            GameLog.Info(LogCategory.Game, "Mario reached the portal");
             OnGameWon?.Invoke();
         }
     }

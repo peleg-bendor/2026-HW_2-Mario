@@ -11,7 +11,7 @@ public class SC_Coin : MonoBehaviour
     {
         if (col.gameObject.tag == "Player")
         {
-            Debug.Log("Coin collected: " + gameObject.name);
+            GameLog.Info(LogCategory.Pickup, "Coin collected: " + gameObject.name);
             if (OnCoinCollision != null)
                 OnCoinCollision();
 

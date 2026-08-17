@@ -23,11 +23,11 @@ public class Gateway : MonoBehaviour
     {
         if (portal == null)
         {
-            Debug.LogWarning("Gateway has no portal assigned - nothing to activate.");
+            GameLog.Warning(LogCategory.Game, "No portal assigned, the gateway will light up nothing");
             return;
         }
 
-        Debug.Log("Gateway lit up - key collected");
+        GameLog.Info(LogCategory.Game, "Gateway lit up - key collected");
         portal.SetActive(true);
     }
 }

@@ -10,7 +10,7 @@ public class KeyPickupController : MonoBehaviour
     {
         if (col.gameObject.tag == "Player")
         {
-            Debug.Log("Key collected");
+            GameLog.Info(LogCategory.Pickup, "Key collected");
             OnKeyCollected?.Invoke();
             this.gameObject.SetActive(false);
         }

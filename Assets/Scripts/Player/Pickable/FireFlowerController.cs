@@ -8,7 +8,7 @@ public class FireFlowerController : MonoBehaviour
     {
         if (col.gameObject.tag == "Player")
         {
-            Debug.Log("Fire flower collected");
+            GameLog.Info(LogCategory.Pickup, "Fire flower collected");
             this.gameObject.SetActive(false);
             col.gameObject.GetComponent<PlayerPowerUp>().CollectPowerUp(new FireFlowerPowerUp());
         }

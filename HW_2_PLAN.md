@@ -939,7 +939,7 @@ moving in lockstep turned into nine identical lines every two seconds. `MovingFl
 Still open: the seven remaining logging findings, all of them call-site work, deliberately left to
 Step 6 rather than done twice.
 
-#### Step 6 — The logging system `[ ]`
+#### Step 6 — The logging system `[~]`
 
 Peleg's, moved here from Stage 9.5 because he wants it inside the required stage rather than the
 optional one. No exercise item asks for it. It answers a real problem instead: the Console gets
@@ -997,6 +997,35 @@ The risk, stated once rather than discovered later: this rewrites files that eig
 working, immediately before a video that shows the code. Three mitigations - its own commit,
 separate from Steps 3 and 4; a scripted check across all 37 files afterwards, the way HW1's Stage
 12.5 verified its own comment pass; and Step 7, which is a full regression run anyway.
+
+**Done so far.** Five files rather than four, since `LogLevel` needed its own. The `Logging`
+GameObject sits under `Scripts` carrying `LogSettings` and `LogFileWriter`, and all four pieces are
+confirmed working in a real session before any call site was converted: the file sink captured a
+whole run including a game over, per-category filtering took effect mid-Play, and the stack-trace
+option was exercised both ways.
+
+The conversion then ran across the codebase: 71 `GameLog` calls in 32 files, no `Debug` left
+outside `Editor/` and `Logging/`, the 14 Editor calls untouched. Categories landed as designed -
+Player 20, Enemy 10, Weapon 9, Projectile 9, Tile 8, Game 8, Pickup 7. Six calls were deleted
+rather than converted, which is the one-event-one-line rule: the five `XPowerUp applied to Mario`
+lines and `PlayerPowerUp`'s `Power-up collected`, so a star now reads as two lines instead of four.
+
+**Confirmed working** by Peleg across a full session, read out of `GameLog.txt` rather than taken
+on the summary: 342 messages, every one carrying a bracketed category. The pickup pairs came out
+exactly even - two `Star collected` against two `Invincibility activated`, three bolts against
+three boosts - with no trace of the deleted middle lines. The Verbose tier proved itself in both
+directions at once: 23 `[Tile]` lines appear because that category was turned up mid-session, while
+`Enemy` and `Projectile` stayed at Info and produced not one wall turn, ground change, vampire shot
+or garlic-on-wall between them. Three `Starting with 1 axe(s)` means three level loads in one file,
+so the append-after-reload fix held across both a game over and a win. A ghost hit landed with no
+health loss after it, the invincibility guard still working under the rewrite. Timer noise went
+from 74% of a session to about 13%, then to less once two more lines moved to Verbose.
+
+The tier ended at twelve rather than the ten designed, on the evidence of that log: `EnemySpawner`'s
+at-cap message fires every three seconds for as long as the level is full, and `Mario landed on
+floor` ran to 59 lines in one session. Both are Peleg's call.
+
+Still open: confirming the `Tools > Logs` window, then the commit.
 
 #### Step 7 — Full playthrough `[ ]`
 

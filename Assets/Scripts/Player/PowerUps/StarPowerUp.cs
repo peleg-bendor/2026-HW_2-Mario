@@ -9,7 +9,6 @@ public class StarPowerUp : IPowerUp
     {
         if (player != null)
         {
-            Debug.Log("StarPowerUp applied to " + player.name);
             PlayerInvincible invincible = player.GetComponent<PlayerInvincible>();
             if (invincible != null)
             {

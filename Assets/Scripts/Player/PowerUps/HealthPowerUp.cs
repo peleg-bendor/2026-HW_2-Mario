@@ -9,7 +9,6 @@ public class HealthPowerUp : IPowerUp
 
     public void ApplyPowerUp(GameObject player)
     {
-        Debug.Log("Health power-up applied");
         OnHealthGained?.Invoke();
     }
 }

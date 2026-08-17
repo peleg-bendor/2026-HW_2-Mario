@@ -68,7 +68,7 @@ public class GameEndManager : MonoBehaviour
         pendingMessage = message;
         pendingColor = color;
         hasPendingMessage = true;
-        Debug.Log(newReason == EndReason.GameWon ? "Game won - message pending" : "Game over - message pending");
+        GameLog.Info(LogCategory.Game, newReason == EndReason.GameWon ? "Game won - message pending" : "Game over - message pending");
     }
 
     private void Update()
@@ -79,7 +79,7 @@ public class GameEndManager : MonoBehaviour
         // Reloads immediately, with no delay for the message. Waiting for it made the level
         // visibly reset twice, since PlayerDeath already snaps Mario back to the start the
         // instant he dies. The message rides on top of the restarted level instead.
-        Debug.Log(reason == EndReason.GameWon ? "Game won - restarting" : "Game over - restarting");
+        GameLog.Info(LogCategory.Game, reason == EndReason.GameWon ? "Game won - restarting" : "Game over - restarting");
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

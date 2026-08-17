@@ -1,9 +1,8 @@
 using UnityEngine;
 
 // Whether a collider is standing on this game's terrain, as an extension so any script can ask
-// without carrying a probe of its own. Deliberately not a general Unity helper: ground here means
-// anything carrying SC_Floor, the same allowlist the projectiles use, which is why there is no
-// LayerMask parameter to hand it a different answer.
+// without carrying a probe of its own. Not a general Unity helper: ground here means anything
+// carrying SC_Floor, which is why there is no LayerMask parameter to hand it a different answer.
 public static class GroundedExtension
 {
     // Keeps the probe inside the collider's own silhouette. A full-width box would touch a wall
@@ -20,10 +19,9 @@ public static class GroundedExtension
 
         Bounds body = collider.bounds;
 
-        // A box across the whole footprint rather than a small circle under the centre. Standing
-        // on a platform's last tile leaves the centre hanging past the tile edge while a round
-        // collider is still perched on the corner, where a centre-only probe sees nothing. Sizes
-        // are read live off the collider so none of them is duplicated here.
+        // A box across the whole footprint rather than a circle under the centre. Standing on a
+        // platform's last tile leaves the centre hanging past the tile edge while a round collider
+        // is still perched on the corner, where a centre-only probe sees nothing.
         Vector2 probeSize = new Vector2(body.size.x * GroundProbeWidthFactor, probeDepth);
         Vector2 probeCenter = new Vector2(body.center.x, body.min.y - probeDepth * 0.5f);
 

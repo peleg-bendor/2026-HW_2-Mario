@@ -8,7 +8,7 @@ public class AxePickupController : MonoBehaviour
     {
         if (col.gameObject.tag == "Player")
         {
-            Debug.Log("Axe pickup collected");
+            GameLog.Info(LogCategory.Pickup, "Axe pickup collected");
             this.gameObject.SetActive(false);
             col.gameObject.GetComponent<PlayerPowerUp>().CollectPowerUp(new AxePowerUp());
         }

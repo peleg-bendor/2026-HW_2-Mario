@@ -41,7 +41,7 @@ public class EnemyRangedAttack : MonoBehaviour
     {
         if (projectilePrefab == null)
         {
-            Debug.Log("Enemy ranged attack ignored - no projectile prefab assigned: " + gameObject.name);
+            GameLog.Warning(LogCategory.Enemy, "No projectile prefab assigned, this enemy will never fire: " + gameObject.name);
             return;
         }
 
@@ -53,7 +53,7 @@ public class EnemyRangedAttack : MonoBehaviour
         if (garlic != null)
             garlic.Attack(directionValue);
 
-        Debug.Log("Enemy fired a projectile: " + gameObject.name + " (" + (directionValue < 0 ? "left" : "right") + ")");
+        GameLog.Verbose(LogCategory.Enemy, "Enemy fired a projectile: " + gameObject.name + " (" + (directionValue < 0 ? "left" : "right") + ")");
 
         directionValue = -directionValue;
     }

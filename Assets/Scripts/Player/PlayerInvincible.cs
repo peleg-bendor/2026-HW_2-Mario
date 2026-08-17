@@ -20,7 +20,7 @@ public class PlayerInvincible : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
 
         if (spriteRenderer == null)
-            Debug.LogWarning("PlayerInvincible: no SpriteRenderer found, the invincibility tint will do nothing");
+            GameLog.Warning(LogCategory.Player, "No SpriteRenderer found, the invincibility tint will do nothing");
         else
             baseColor = spriteRenderer.color;
     }
@@ -33,11 +33,11 @@ public class PlayerInvincible : MonoBehaviour
         if (invincibilityRoutine != null)
         {
             StopCoroutine(invincibilityRoutine);
-            Debug.Log("Invincibility restarted for " + gameObject.name);
+            GameLog.Info(LogCategory.Player, "Invincibility restarted");
         }
         else
         {
-            Debug.Log("Invincibility activated for " + gameObject.name);
+            GameLog.Info(LogCategory.Player, "Invincibility activated");
         }
 
         invincibilityRoutine = StartCoroutine(InvincibilityCoroutine());
@@ -57,6 +57,6 @@ public class PlayerInvincible : MonoBehaviour
 
         IsInvincible = false;
         invincibilityRoutine = null;
-        Debug.Log("Invincibility ended for " + gameObject.name);
+        GameLog.Info(LogCategory.Player, "Invincibility ended");
     }
 }

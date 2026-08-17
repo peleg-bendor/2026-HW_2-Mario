@@ -6,7 +6,7 @@ public class EnemyHealth : MonoBehaviour, IEnemy
 {
     public void Kill()
     {
-        Debug.Log("Enemy destroyed: " + gameObject.name);
+        GameLog.Info(LogCategory.Enemy, "Enemy destroyed: " + gameObject.name);
         Destroy(gameObject);
     }
 }

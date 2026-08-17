@@ -8,7 +8,7 @@ public class HealthPickupController : MonoBehaviour
     {
         if (col.gameObject.tag == "Player")
         {
-            Debug.Log("Health pickup collected");
+            GameLog.Info(LogCategory.Pickup, "Health pickup collected");
             this.gameObject.SetActive(false);
             col.gameObject.GetComponent<PlayerPowerUp>().CollectPowerUp(new HealthPowerUp());
         }

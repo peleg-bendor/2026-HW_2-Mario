@@ -34,6 +34,6 @@ public class PlayerDeath : MonoBehaviour
             return;
 
         transform.position = startPosition;
-        Debug.Log("Mario respawned at start position");
+        GameLog.Info(LogCategory.Player, "Mario respawned at start position");
     }
 }

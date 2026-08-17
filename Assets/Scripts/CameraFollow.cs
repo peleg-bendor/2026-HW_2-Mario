@@ -27,7 +27,7 @@ public class CameraFollow : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null)
         {
-            Debug.LogWarning("CameraFollow found nothing tagged Player - camera will not follow.");
+            GameLog.Warning(LogCategory.Game, "No object tagged Player found, the camera will not follow");
             return;
         }
 

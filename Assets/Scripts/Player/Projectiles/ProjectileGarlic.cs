@@ -33,7 +33,7 @@ public class ProjectileGarlic : MonoBehaviour
     {
         if (other.gameObject.tag == "Player")
         {
-            Debug.Log("Garlic hit Mario");
+            GameLog.Info(LogCategory.Projectile, "Garlic hit Mario");
             Destroy(gameObject);
             return;
         }
@@ -41,7 +41,7 @@ public class ProjectileGarlic : MonoBehaviour
         // Same allowlist the fireball uses - SC_Floor is what marks a tile as a tile.
         if (other.GetComponent<SC_Floor>() != null)
         {
-            Debug.Log("Garlic hit a wall");
+            GameLog.Verbose(LogCategory.Projectile, "Garlic hit a wall");
             Destroy(gameObject);
         }
     }

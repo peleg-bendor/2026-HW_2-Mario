@@ -18,7 +18,7 @@ public class WeaponsHandler : MonoBehaviour
             return;
 
         weapons.Add(weapon);
-        Debug.Log("Weapon registered: " + weapon.GetType().Name);
+        GameLog.Info(LogCategory.Weapon, "Weapon registered: " + weapon.GetType().Name.Replace("Weapon", ""));
 
         // The first weapon registered is the one Mario starts holding, so the GUI needs telling
         // about it even though nobody pressed anything.
@@ -57,13 +57,13 @@ public class WeaponsHandler : MonoBehaviour
             }
         }
 
-        Debug.Log("Weapon switch ignored - no other weapon available yet");
+        GameLog.Info(LogCategory.Weapon, "Weapon switch ignored - no other weapon available yet");
     }
 
     private void NotifySelection()
     {
         string weaponName = weapons[selectedIndex].GetType().Name.Replace("Weapon", "");
-        Debug.Log("Weapon selected: " + weaponName);
+        GameLog.Info(LogCategory.Weapon, "Weapon selected: " + weaponName);
         OnWeaponSelected?.Invoke(weaponName);
     }
 }

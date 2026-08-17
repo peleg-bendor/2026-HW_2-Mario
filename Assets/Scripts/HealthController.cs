@@ -38,7 +38,7 @@ public class HealthController : MonoBehaviour
             playerInvincible = player.GetComponent<PlayerInvincible>();
 
         if (healthView == null)
-            Debug.LogWarning("HealthController: no HealthView assigned, health will not be drawn");
+            GameLog.Warning(LogCategory.Player, "No HealthView assigned, health will not be drawn");
     }
 
     private void Start()
@@ -57,7 +57,7 @@ public class HealthController : MonoBehaviour
         if (!model.Lose())
             return;
 
-        Debug.Log("Health lost - " + model.CurrentHealth + " remaining");
+        GameLog.Info(LogCategory.Player, "Health lost - " + model.CurrentHealth + " remaining");
 
         if (healthView != null)
             healthView.ShowHealth(model.CurrentHealth);
@@ -70,11 +70,11 @@ public class HealthController : MonoBehaviour
     {
         if (!model.Gain())
         {
-            Debug.Log("Health pickup ignored - already at max (" + model.MaxHealth + ")");
+            GameLog.Info(LogCategory.Player, "Health pickup ignored - already at max (" + model.MaxHealth + ")");
             return;
         }
 
-        Debug.Log("Health gained - " + model.CurrentHealth + " remaining");
+        GameLog.Info(LogCategory.Player, "Health gained - " + model.CurrentHealth + " remaining");
 
         if (healthView != null)
             healthView.ShowHealth(model.CurrentHealth);

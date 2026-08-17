@@ -23,14 +23,17 @@ This file travels to the next exercise along with `Assets`.
 6. Prefer naming the alternative that was rejected. "X rather than Y, because Z" is the shape most
    of this codebase's comments take, and it is what keeps a comment from restating the code.
 7. Four lines maximum, on their own lines above what they describe. No trailing comments.
-8. State what is true now. No changelog voice, nothing about what the code used to do.
-9. Never repeat a value the code or the scene already holds. Explain what the number means instead:
-   "the cutoff sits at 60 degrees off vertical" rather than the `0.5f` the code already carries.
-10. No references to plan stages, lesson numbers, or `HW_2_PLAN.md`. That narrative belongs in the
+8. A comment makes one point. If it reaches for "also" or stacks a second unrelated claim, either
+   that claim belongs at the line it actually explains or it isn't worth saying. A file header's
+   "what it is for and what it deliberately isn't" counts as one point.
+9. State what is true now. No changelog voice, nothing about what the code used to do.
+10. Never repeat a value the code or the scene already holds. Explain what the number means instead:
+    "the cutoff sits at 60 degrees off vertical" rather than the `0.5f` the code already carries.
+11. No references to plan stages, lesson numbers, or `HW_2_PLAN.md`. That narrative belongs in the
     plan and in git.
-11. A comment naming another class, event or method is a reference. Renaming that thing means
+12. A comment naming another class, event or method is a reference. Renaming that thing means
     updating the comment with it.
-12. If in doubt, write it so a human reading the file cold understands it. That outranks the rules
+13. If in doubt, write it so a human reading the file cold understands it. That outranks the rules
     above where they conflict.
 
 ## Logging
@@ -42,13 +45,18 @@ This file travels to the next exercise along with `Assets`.
 5. A rejected action reads `<action> ignored - <reason>`. Use "ignored" rather than "skipped".
 6. Append `gameObject.name` only when several of that thing can exist at once. Mario is one object,
    so naming him repeats what the message already said.
-7. Never put a class name in the message. The Console already shows the class and line.
+7. Never put the logging class's own name in the message. The Console already shows the class and
+   line. Naming a *different* type is fine and often necessary, as in `No HealthView assigned`.
 8. One event, one line. The class that owns the decision logs it; the classes it passes through
    stay quiet.
 9. When many instances make the same transition on the same frame, log it once for all of them,
    guarded on `Time.frameCount`. `DisappearingFloor` and `MovingFloor` both do this.
-10. A missing Inspector reference is a warning, shaped `ClassName: no X found, <what stops working>`.
-11. `Assets/Scripts/Editor/` keeps plain `Debug` and reports results rather than events. Tool
+10. A missing Inspector reference is a warning, shaped `No X found, <what stops working>`.
+11. A line that fires on a timer or on every contact goes to `GameLog.Verbose`, not `Info`. It
+    stays available behind one dropdown without filling the Console.
+12. Never put a side effect in a log argument. `Info` and `Verbose` are `[Conditional]`, so the
+    call and everything inside it disappears from a release build.
+13. `Assets/Scripts/Editor/` keeps plain `Debug` and reports results rather than events. Tool
     feedback is not game logging, and it never reaches a build.
 
 ## Naming and hierarchy

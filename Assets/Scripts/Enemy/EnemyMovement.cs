@@ -82,7 +82,7 @@ public class EnemyMovement : MonoBehaviour
         {
             facingDirection = -facingDirection;
             UpdateSpriteFacing();
-            Debug.Log("Enemy hit a wall - turned around");
+            GameLog.Verbose(LogCategory.Enemy, "Enemy hit a wall - turned around: " + gameObject.name);
         }
 
         // Velocity is only ever driven while grounded and left alone while airborne, so momentum
@@ -162,7 +162,7 @@ public class EnemyMovement : MonoBehaviour
 
         // Named, because several enemies can be patrolling at once and the Console gives no
         // other way to tell which one this is.
-        Debug.Log(grounded
+        GameLog.Verbose(LogCategory.Enemy, grounded
             ? "Enemy landed - resuming patrol: " + gameObject.name
             : "Enemy left the ground - falling: " + gameObject.name);
     }

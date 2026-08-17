@@ -40,7 +40,7 @@ public class ProjectileFireball : MonoBehaviour
         // tile as a tile, so coins, pickups and Mario himself are flown through untouched.
         if (other.GetComponent<SC_Floor>() != null)
         {
-            Debug.Log("Fireball hit a wall");
+            GameLog.Verbose(LogCategory.Projectile, "Fireball hit a wall");
             Destroy(gameObject);
         }
     }

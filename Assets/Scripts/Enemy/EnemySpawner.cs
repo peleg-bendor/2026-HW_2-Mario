@@ -43,11 +43,11 @@ public class EnemySpawner : MonoBehaviour
             // Expected on every scene reload, since OnDestroy cancels the token on the way out.
             // Logged rather than reported as an error, because a spawner "failing" every time
             // the game restarts would be misleading noise.
-            Debug.Log("Enemy spawner stopped: " + gameObject.name);
+            GameLog.Info(LogCategory.Enemy, "Enemy spawner stopped: " + gameObject.name);
         }
         catch (System.Exception ex)
         {
-            Debug.LogError("Error in enemy spawn loop: " + ex.Message);
+            GameLog.Error(LogCategory.Enemy, "Error in enemy spawn loop: " + ex.Message);
         }
     }
 
@@ -90,18 +90,18 @@ public class EnemySpawner : MonoBehaviour
 
         if (spawned.Count >= maxAlive)
         {
-            Debug.Log("Enemy spawn skipped - already at cap (" + maxAlive + "): " + gameObject.name);
+            GameLog.Verbose(LogCategory.Enemy, "Enemy spawn ignored - already at cap (" + maxAlive + "): " + gameObject.name);
             return;
         }
 
         if (enemyPrefab == null)
         {
-            Debug.Log("Enemy spawn skipped - no prefab assigned: " + gameObject.name);
+            GameLog.Warning(LogCategory.Enemy, "No enemy prefab assigned, nothing will spawn: " + gameObject.name);
             return;
         }
 
         GameObject enemy = Instantiate(enemyPrefab, transform.position, Quaternion.identity);
         spawned.Add(enemy);
-        Debug.Log("Enemy spawned: " + enemy.name + " (" + spawned.Count + "/" + maxAlive + " from " + gameObject.name + ")");
+        GameLog.Info(LogCategory.Enemy, "Enemy spawned: " + enemy.name + " (" + spawned.Count + "/" + maxAlive + " from " + gameObject.name + ")");
     }
 }

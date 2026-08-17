@@ -8,7 +8,7 @@ public class LightningBoltController : MonoBehaviour
     {
         if (col.gameObject.tag == "Player")
         {
-            Debug.Log("Lightning bolt collected");
+            GameLog.Info(LogCategory.Pickup, "Lightning bolt collected");
             this.gameObject.SetActive(false);
             col.gameObject.GetComponent<PlayerPowerUp>().CollectPowerUp(new LightningBoltPowerUp());
         }

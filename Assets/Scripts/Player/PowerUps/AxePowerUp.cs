@@ -8,7 +8,6 @@ public class AxePowerUp : IPowerUp
     {
         if(player != null)
         {
-            Debug.Log("AxePowerUp applied to " + player.name);
             IReloadWeapon reloadWeapon = player.GetComponentInChildren<IReloadWeapon>();
             if(reloadWeapon != null)
             {

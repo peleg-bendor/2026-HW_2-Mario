@@ -1,10 +1,9 @@
 using System.Collections;
 using UnityEngine;
 
-// Cycles a floor tile between visible/solid and invisible/passable on a fixed timer, started
-// from scene load rather than triggered by Mario. Toggles SpriteRenderer and Collider2D rather
-// than the GameObject itself, since a disabled GameObject would stop running this coroutine and
-// the tile would vanish for good.
+// Cycles a floor tile between solid and passable on a fixed timer, from scene load rather than on
+// Mario's touch. Toggles the SpriteRenderer and Collider2D rather than the GameObject, since a
+// disabled GameObject would stop running this coroutine and the tile would never come back.
 public class DisappearingFloor : MonoBehaviour
 {
     [SerializeField] private float visibleDuration = 2f;
@@ -25,10 +24,10 @@ public class DisappearingFloor : MonoBehaviour
         floorCollider = GetComponent<Collider2D>();
 
         if (spriteRenderer == null)
-            Debug.LogWarning("DisappearingFloor: no SpriteRenderer found, the tile will never visibly vanish");
+            GameLog.Warning(LogCategory.Tile, "No SpriteRenderer found, the tile will never visibly vanish");
 
         if (floorCollider == null)
-            Debug.LogWarning("DisappearingFloor: no Collider2D found, the tile will always block Mario");
+            GameLog.Warning(LogCategory.Tile, "No Collider2D found, the tile will always block Mario");
     }
 
     void Start()
@@ -59,7 +58,7 @@ public class DisappearingFloor : MonoBehaviour
         if (Time.frameCount != lastLoggedShowFrame)
         {
             lastLoggedShowFrame = Time.frameCount;
-            Debug.Log("Disappearing floor tiles appeared");
+            GameLog.Verbose(LogCategory.Tile, "Disappearing floor tiles appeared");
         }
     }
 
@@ -74,7 +73,7 @@ public class DisappearingFloor : MonoBehaviour
         if (Time.frameCount != lastLoggedHideFrame)
         {
             lastLoggedHideFrame = Time.frameCount;
-            Debug.Log("Disappearing floor tiles vanished");
+            GameLog.Verbose(LogCategory.Tile, "Disappearing floor tiles vanished");
         }
     }
 }

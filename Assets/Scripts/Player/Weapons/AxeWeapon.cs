@@ -13,7 +13,7 @@ public class AxeWeapon : MonoBehaviour, IReloadWeapon
     {
         // Announced once at startup so a display reading this count doesn't need its own copy
         // of the starting value.
-        Debug.Log("Starting with " + axesHeld + " axe(s)");
+        GameLog.Info(LogCategory.Weapon, "Starting with " + axesHeld + " axe(s)");
         OnAxeCountChanged?.Invoke(axesHeld);
     }
 
@@ -32,12 +32,12 @@ public class AxeWeapon : MonoBehaviour, IReloadWeapon
                 scProjectile.Attack(direction);
             }
             axesHeld--;
-            Debug.Log("Axe thrown - " + axesHeld + " left");
+            GameLog.Info(LogCategory.Weapon, "Axe thrown - " + axesHeld + " left");
             OnAxeCountChanged?.Invoke(axesHeld);
         }
         else
         {
-            Debug.Log("Axe attack ignored - no axes held");
+            GameLog.Info(LogCategory.Weapon, "Axe attack ignored - no axes held");
         }
     }
 
@@ -46,7 +46,7 @@ public class AxeWeapon : MonoBehaviour, IReloadWeapon
     public void Reload()
     {
         axesHeld++;
-        Debug.Log("Axe gained - now holding " + axesHeld);
+        GameLog.Info(LogCategory.Weapon, "Axe gained - now holding " + axesHeld);
         OnAxeCountChanged?.Invoke(axesHeld);
     }
 

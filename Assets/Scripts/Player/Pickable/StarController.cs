@@ -8,7 +8,7 @@ public class StarController : MonoBehaviour
     {
         if (col.gameObject.tag == "Player")
         {
-            Debug.Log("Star collected");
+            GameLog.Info(LogCategory.Pickup, "Star collected");
             this.gameObject.SetActive(false);
             col.gameObject.GetComponent<PlayerPowerUp>().CollectPowerUp(new StarPowerUp());
         }

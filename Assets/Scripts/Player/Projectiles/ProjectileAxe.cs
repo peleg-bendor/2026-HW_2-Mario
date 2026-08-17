@@ -33,10 +33,10 @@ public class ProjectileAxe : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
 
         if (rb == null)
-            Debug.LogWarning("ProjectileAxe: no Rigidbody2D found, the axe will not fly or land");
+            GameLog.Warning(LogCategory.Projectile, "No Rigidbody2D found, the axe will not fly or land");
 
         if (spriteRenderer == null)
-            Debug.LogWarning("ProjectileAxe: no SpriteRenderer found, the axe will not fade out");
+            GameLog.Warning(LogCategory.Projectile, "No SpriteRenderer found, the axe will not fade out");
         else
             baseColor = spriteRenderer.color;
     }
@@ -57,7 +57,7 @@ public class ProjectileAxe : MonoBehaviour
 
         if (age >= lifetime)
         {
-            Debug.Log("Axe despawned");
+            GameLog.Info(LogCategory.Projectile, "Axe despawned");
             Destroy(gameObject);
         }
 
@@ -95,7 +95,7 @@ public class ProjectileAxe : MonoBehaviour
             {
                 // Freezing every constraint is what makes a landed axe rest in place. It also
                 // makes it a solid obstacle, which is why a patrolling enemy turns around at one.
-                Debug.Log("Axe landed");
+                GameLog.Info(LogCategory.Projectile, "Axe landed");
                 hasLanded = true;
                 restingOn = col.collider;
                 rb.linearVelocity = Vector2.zero;
@@ -106,7 +106,7 @@ public class ProjectileAxe : MonoBehaviour
 
         if (col.gameObject.tag == "Player")
         {
-            Debug.Log("Axe picked back up");
+            GameLog.Info(LogCategory.Projectile, "Axe picked back up");
             PlayerPowerUp playerPowerUp = col.gameObject.GetComponent<PlayerPowerUp>();
             if (playerPowerUp != null)
                 playerPowerUp.CollectPowerUp(new AxePowerUp());
@@ -119,7 +119,7 @@ public class ProjectileAxe : MonoBehaviour
     // rather than a second copy of that logic.
     private void ResumeFalling()
     {
-        Debug.Log("Axe lost its support, falling again");
+        GameLog.Info(LogCategory.Projectile, "Axe lost its support, falling again");
         hasLanded = false;
         restingOn = null;
         rb.linearVelocity = Vector2.zero;

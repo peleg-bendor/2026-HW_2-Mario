@@ -30,7 +30,7 @@ public class PlayerSpeedBoost : MonoBehaviour
         playerInvincible = GetComponent<PlayerInvincible>();
 
         if (movement == null)
-            Debug.LogWarning("PlayerSpeedBoost: no PlayerMovement found, the speed boost will do nothing");
+            GameLog.Warning(LogCategory.Player, "No PlayerMovement found, the speed boost will do nothing");
         else
             baseSpeed = movement.speed;
     }
@@ -42,11 +42,11 @@ public class PlayerSpeedBoost : MonoBehaviour
         if (boostRoutine != null)
         {
             StopCoroutine(boostRoutine);
-            Debug.Log("Speed boost restarted for " + gameObject.name);
+            GameLog.Info(LogCategory.Player, "Speed boost restarted");
         }
         else
         {
-            Debug.Log("Speed boost activated for " + gameObject.name);
+            GameLog.Info(LogCategory.Player, "Speed boost activated");
         }
 
         boostRoutine = StartCoroutine(BoostCoroutine());
@@ -60,7 +60,7 @@ public class PlayerSpeedBoost : MonoBehaviour
         yield return new WaitForSeconds(boostDuration);
 
         RestoreSpeed();
-        Debug.Log("Speed boost ended for " + gameObject.name);
+        GameLog.Info(LogCategory.Player, "Speed boost ended");
     }
 
     private void OnHazardCollision()
@@ -75,7 +75,7 @@ public class PlayerSpeedBoost : MonoBehaviour
 
         StopCoroutine(boostRoutine);
         RestoreSpeed();
-        Debug.Log("Speed boost cancelled for " + gameObject.name + " by hazard hit");
+        GameLog.Info(LogCategory.Player, "Speed boost cancelled by hazard hit");
     }
 
     // Always restores to the speed captured once in Awake rather than dividing the current

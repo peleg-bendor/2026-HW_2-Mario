@@ -8,7 +8,6 @@ public class FireFlowerPowerUp : IPowerUp
     {
         if(player != null)
         {
-            Debug.Log("FireFlowerPowerUp applied to " + player.name);
             IUseableWeapon useableWeapon = player.GetComponentInChildren<IUseableWeapon>();
             if(useableWeapon != null)
             {

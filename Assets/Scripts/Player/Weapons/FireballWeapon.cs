@@ -21,11 +21,11 @@ public class FireballWeapon : MonoBehaviour, IUseableWeapon
                     direction = transform.parent.localScale.x;
                 scProjectile.Attack(direction);
             }
-            Debug.Log("Fireball shot");
+            GameLog.Info(LogCategory.Weapon, "Fireball shot");
         }
         else
         {
-            Debug.Log("Fireball attack ignored - not equipped");
+            GameLog.Info(LogCategory.Weapon, "Fireball attack ignored - not equipped");
         }
     }
 

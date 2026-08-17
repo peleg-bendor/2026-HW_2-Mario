@@ -1,9 +1,8 @@
 using UnityEngine;
 
-// Patrols a floor tile between its home cell and travelDistance world units to the right, forever,
-// and carries anything resting on top of it along for the ride. Movement lives on a Kinematic
-// Rigidbody2D moved with MovePosition rather than a plain Transform write, since this is the only
-// floor tile whose collider actually moves. No coordinator - each instance patrols on its own.
+// Patrols a floor tile between its home cell and travelDistance to the right, forever, carrying
+// anything resting on top along for the ride. Movement goes through a Kinematic Rigidbody2D rather
+// than a Transform write, since this is the only floor tile whose collider actually moves.
 public class MovingFloor : MonoBehaviour
 {
     [SerializeField] private float travelDistance = 2f;
@@ -28,7 +27,7 @@ public class MovingFloor : MonoBehaviour
 
         if (rigid == null)
         {
-            Debug.LogWarning("MovingFloor: no Rigidbody2D found, the tile will never move");
+            GameLog.Warning(LogCategory.Tile, "No Rigidbody2D found, the tile will never move");
             return;
         }
 
@@ -62,7 +61,7 @@ public class MovingFloor : MonoBehaviour
                 return;
 
             lastLoggedFarSideFrame = Time.frameCount;
-            Debug.Log("Moving floor tiles turned toward the far side");
+            GameLog.Verbose(LogCategory.Tile, "Moving floor tiles turned toward the far side");
         }
         else
         {
@@ -70,7 +69,7 @@ public class MovingFloor : MonoBehaviour
                 return;
 
             lastLoggedHomeFrame = Time.frameCount;
-            Debug.Log("Moving floor tiles turned back toward home");
+            GameLog.Verbose(LogCategory.Tile, "Moving floor tiles turned back toward home");
         }
     }
 

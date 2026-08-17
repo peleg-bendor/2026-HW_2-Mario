@@ -1,9 +1,8 @@
 using UnityEngine;
 
-// Marks a GameObject as a floor tile. Doubles as the allowlist the rest of the project uses to
-// tell real terrain from everything else, which is how projectiles and the jump check exclude
-// pickups, a landed axe and an enemy's head without naming any of them. Also exposes the
-// landed-on-top-vs-bumped-the-side geometry check as a static method, for MovingFloor to reuse.
+// Marks a GameObject as a floor tile, and so doubles as the allowlist the rest of the project uses
+// to tell real terrain from everything else - which is how projectiles and the jump check exclude
+// pickups, a landed axe and an enemy's head without naming any of them.
 public class SC_Floor : MonoBehaviour
 {
     public delegate void FloorCollisionHandler();
@@ -23,15 +22,13 @@ public class SC_Floor : MonoBehaviour
             }
             else
             {
-                Debug.Log("Mario touched floor tile from the side");
+                GameLog.Verbose(LogCategory.Tile, "Mario touched floor tile from the side");
             }
         }
     }
 
-    // Whether the other side of this collision rests on top of the tile rather than bumping its
-    // side - its centre clears the tile's own by roughly its own collider's half-height. Read live
-    // off that collider so it survives the other object ever being resized. Shared by this class's
-    // own landing event and MovingFloor's rider check, which need the identical geometry test.
+    // Public and static because MovingFloor's rider check needs the identical landed-on-top test
+    // the landing event above uses, and one copy of the geometry is worth more than two.
     public static bool IsAboveTile(Collision2D col, Transform tileTransform)
     {
         float otherY = col.gameObject.transform.position.y;

@@ -9,7 +9,6 @@ public class LightningBoltPowerUp : IPowerUp
     {
         if (player != null)
         {
-            Debug.Log("LightningBoltPowerUp applied to " + player.name);
             PlayerSpeedBoost speedBoost = player.GetComponent<PlayerSpeedBoost>();
             if (speedBoost != null)
             {

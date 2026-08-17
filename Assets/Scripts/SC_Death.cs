@@ -28,7 +28,7 @@ public class SC_Death : MonoBehaviour
     {
         if (other.tag == "Player")
         {
-            Debug.Log("Mario hit hazard: " + gameObject.name);
+            GameLog.Info(LogCategory.Game, "Mario hit hazard: " + gameObject.name);
             if (OnHazardCollision != null)
                 OnHazardCollision();
         }
