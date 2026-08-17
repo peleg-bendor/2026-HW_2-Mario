@@ -776,40 +776,43 @@ The division of labour, settled in this stage's discussion: Tiled authors the le
 painting a grid is what it is good at, and the Unity tools handle tweaks afterwards because
 re-exporting for every small change is slow and desyncs the two files. The Tile Placer pass is
 therefore optional rather than the main event - it is there for the adjustments a playtest turns
-up, not to re-place 173 objects by hand.
+up, not to re-place a few hundred objects by hand.
 
 **Done so far:** Peleg designed the level in Tiled and ran the whole chain - Export, Build Level,
-Save Level, Ctrl+S on the scene. Verified afterwards by reading the files rather than the object
-counts: `Level01.tmx`, `Level01.txt` and the saved scene all hold the same 173 objects at the same
-cells, so all three are in sync and nothing is owed to Stage 10 as things stand. Grid is unchanged
-at 30x20. Three stray clouds that had been sitting in the scene since Stage 8.5's testing, never
-saved to the file, were cleared by the rebuild.
+Save Level, Ctrl+S on the scene - twice, the second time carrying Step 3's border and a rebuild of
+the level around it. Verified after each pass by reading the files rather than the object counts:
+`Level01.tmx`, `Level01.txt` and the saved scene hold the same cells, so all three are in sync and
+nothing is owed to Stage 10 as things stand. Grid is unchanged at 30x20; the level went from 173
+objects to 259. Three stray clouds that had been sitting in the scene since Stage 8.5's testing,
+never saved to the file, were cleared by the first rebuild.
 
-Still open: whatever the Step 6 playthrough turns up, applied with the Tile Placer and saved back.
+Still open: whatever the Step 7 playthrough turns up, applied with the Tile Placer and saved back.
 Any such tweak makes `Level01.tmx` stale again and re-owes Stage 10 the re-sync.
 
-#### Step 3 — Close the level from the outside `[ ]`
+#### Step 3 — Close the level from the outside `[x]`
 
 Not an exercise item. Found while checking the level over: nothing bounded it, and `SC_Death` sits
 only on spikes, both enemies and the garlic, so walking off the left or right edge dropped Mario
 forever with the camera following him down. No respawn, no game over, no way out but stopping Play.
 A level that can be fallen out of is a weak answer to "a complete playable level".
 
-**The answer is two columns of earth tiles**, painted in Tiled at x = 1 and x = 28 running from the
-ground row up, so the level is closed by level data. Zero code, authored in the tile editor the
+**The answer is a border of earth tiles**, painted in Tiled around all four sides - x = 0, x = 29,
+y = 0 and y = 19 - so the level is closed by level data. Zero code, authored in the tile editor the
 requirement names, stored in `Level01.txt` so it travels with the level, and visible, so the
-boundary reads as design rather than as an invisible collider somebody has to explain.
+boundary reads as design rather than as an invisible collider somebody has to explain. Peleg
+rebuilt the level around it in the same pass, from 173 objects to 259.
+
+Closing the top as well as the sides settled the one thing a wall of tiles couldn't otherwise
+guarantee. A column can only be as tall as the grid, so a tower near the edge plus a double jump
+could have put Mario on top of a side wall and out over the edge; a ceiling row makes that
+impossible rather than merely unlikely.
 
 It also fixes something nobody was looking for. `EnemyMovement` deliberately walks off whatever
 edge it reaches, and `EnemySpawner` prunes its list by `enemy == null`, so a ghost that walked off
 the end of the ground row fell forever and kept occupying a slot against the cap of 3 permanently.
 Three wanderers and the grave stops spawning, silently. With a wall there the ghost turns around,
-which is what `IsWallAhead` was written for.
-
-One corner to test rather than assume, since a column can only be as tall as the grid: the tower at
-x = 27 reaches y = 17, and a double jump from there may clear a wall whose top is at y = 19. If it
-does, the level has one way out and it wants either the grid two rows taller (Tiled's Map -> Resize
-with a Y offset of 2 keeps every existing cell at the same y) or that tower shortened.
+which is what `IsWallAhead` was written for. Worth watching for in Step 7: the grave should keep
+producing ghosts for a whole run rather than going quiet after three.
 
 #### The scripted version, built and then removed
 
@@ -849,7 +852,12 @@ Mario's sprite hung slightly below the red line. His collider is a circle narrow
 is tall, so he sits that far below any surface he stands on; every floor tile hides it behind its
 own sprite and the boundary had none.
 
-#### Step 4 — The camera starts on Mario `[ ]`
+**Confirmed working** by Peleg in the editor, and by reading the files rather than the Hierarchy:
+`DeathPlane.cs` and `LevelWalls.cs` are gone from disk, the scene holds no reference to either
+class, and nothing else in the project ever did. `Level01.tmx` and `Level01.txt` match cell for
+cell at 259 objects, with earth along x = 0, x = 29, y = 0 and y = 19.
+
+#### Step 4 — The camera starts on Mario `[x]`
 
 `CameraFollow` finds Mario in `Awake` but never snaps to him, so `LateUpdate` smooth-damps in from
 wherever the Main Camera was last left in the scene. Visible on every Play and on every scene
@@ -857,7 +865,15 @@ reload, which means every game over, every win, and every take of the video.
 
 Fixed in code rather than by moving the camera in the Inspector: Mario is placed by the level
 builder, so an Inspector position goes stale the moment his cell moves in the level file. Two
-lines, matching the class's own habit of reading values live instead of hardcoding them.
+lines, matching the class's own habit of reading values live instead of hardcoding them. The
+target position moved into a small private method along with it, since `Awake` and `LateUpdate`
+now both want it and the one comment explaining why Mario's world position needs no correction
+belongs in one place. No Inspector work at all: nothing new is serialized, and where the Main
+Camera sits in the saved scene stops mattering once `Awake` overwrites it.
+
+**Confirmed working** by Peleg in the editor: the first frame opens centred on Mario with no
+slide, the follow feels unchanged, and a scene reload after a game over opens centred too - the
+case that happens most often and the one the video would have shown.
 
 #### Step 5 — Conventions: settle them, write them down, audit against them `[ ]`
 

@@ -1,7 +1,8 @@
 using UnityEngine;
 
-// Keeps the camera centred on Mario, smoothed rather than snapping. Runs in LateUpdate so it
-// reads his fully resolved position for the frame instead of trailing physics by a step.
+// Keeps the camera centred on Mario: snapped onto him at load, smoothed from then on. Runs in
+// LateUpdate so it reads his fully resolved position for the frame instead of trailing physics
+// by a step.
 public class CameraFollow : MonoBehaviour
 {
     [SerializeField] private float smoothTime = 0.15f;
@@ -31,6 +32,11 @@ public class CameraFollow : MonoBehaviour
         }
 
         target = player.transform;
+
+        // Snapped rather than smoothed for the first frame, so the camera opens on Mario instead
+        // of sliding in from wherever it was last saved. Every game over and every win reloads
+        // the scene, so that slide would otherwise happen several times a session.
+        transform.position = DesiredPosition();
     }
 
     private void LateUpdate()
@@ -38,9 +44,13 @@ public class CameraFollow : MonoBehaviour
         if (target == null)
             return;
 
-        // Mario's world position already accounts for whatever his parent objects are offset
-        // by, so following it needs no correction for how the level is nested.
-        Vector3 desiredPosition = new Vector3(target.position.x, target.position.y, cameraZ);
-        transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref followVelocity, smoothTime);
+        transform.position = Vector3.SmoothDamp(transform.position, DesiredPosition(), ref followVelocity, smoothTime);
+    }
+
+    // Mario's world position already accounts for whatever his parent objects are offset by, so
+    // following it needs no correction for how the level is nested.
+    private Vector3 DesiredPosition()
+    {
+        return new Vector3(target.position.x, target.position.y, cameraZ);
     }
 }
