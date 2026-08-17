@@ -24,7 +24,8 @@ airborne, and a full level authored with the tooling.
 
 Full requirements are in `Course/Exercises/Exercise 02.md` (outside this repo, in the shared
 course folder). Stage-by-stage progress, decisions, and what's left is tracked in
-[`HW_2_PLAN.md`](HW_2_PLAN.md).
+[`HW_2_PLAN.md`](HW_2_PLAN.md). The comment, logging, naming and code-quality rules the code
+follows are in [`CONVENTIONS.md`](CONVENTIONS.md).
 
 ## The Editor tooling, and how it differs from the lesson's
 

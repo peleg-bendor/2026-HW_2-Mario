@@ -134,7 +134,7 @@ public class EnemyMovement : MonoBehaviour
                 continue;
 
             // Mario is invisible here too. Counting as a wall would make the enemy turn around
-            // just short of him and never land the touch that costs a strike.
+            // just short of him and never land the touch that costs him health.
             if (hit.collider.CompareTag("Player"))
                 continue;
 

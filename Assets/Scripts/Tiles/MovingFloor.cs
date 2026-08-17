@@ -17,6 +17,11 @@ public class MovingFloor : MonoBehaviour
     // set fresh in FixedUpdate before Unity's physics step runs the collision callbacks that use it.
     private Vector2 frameDelta;
 
+    // Static so the guard is shared: tiles that share a speed reach a turn on the same frame, and
+    // this keeps the log to one line per collective turn instead of one per tile.
+    private static int lastLoggedFarSideFrame = -1;
+    private static int lastLoggedHomeFrame = -1;
+
     void Awake()
     {
         rigid = GetComponent<Rigidbody2D>();
@@ -45,7 +50,27 @@ public class MovingFloor : MonoBehaviour
         if (newPosition == target)
         {
             movingToFarSide = !movingToFarSide;
-            Debug.Log(movingToFarSide ? "Cloud tile turned back toward the far side" : "Cloud tile turned back toward home");
+            LogTurn();
+        }
+    }
+
+    private void LogTurn()
+    {
+        if (movingToFarSide)
+        {
+            if (Time.frameCount == lastLoggedFarSideFrame)
+                return;
+
+            lastLoggedFarSideFrame = Time.frameCount;
+            Debug.Log("Moving floor tiles turned toward the far side");
+        }
+        else
+        {
+            if (Time.frameCount == lastLoggedHomeFrame)
+                return;
+
+            lastLoggedHomeFrame = Time.frameCount;
+            Debug.Log("Moving floor tiles turned back toward home");
         }
     }
 

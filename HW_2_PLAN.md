@@ -875,7 +875,7 @@ Camera sits in the saved scene stops mattering once `Awake` overwrites it.
 slide, the follow feels unchanged, and a scene reload after a game over opens centred too - the
 case that happens most often and the one the video would have shown.
 
-#### Step 5 — Conventions: settle them, write them down, audit against them `[ ]`
+#### Step 5 — Conventions: settle them, write them down, audit against them `[~]`
 
 Peleg's addition, raised as Stage 8.5 closed. The eight-point convention this project has been
 following is already written down and called finalized, so this step is not a blank slate: it is
@@ -883,10 +883,14 @@ a revisit plus a sweep. Three halves, by the time the discussion finished with i
 
 Write it down somewhere durable, which is the part that was missing. HW1 put its eight rules in
 its own Decisions Log, and the direct consequence is that they had to be re-typed into the standing
-brief for this project. So: `2026-HW_2-Mario/CONVENTIONS.md`, holding the comment rules, the
-logging rules, and the naming and hierarchy rules that until now existed only in that brief -
-sprite naming and pixels per unit, the `Sprite_` prefix, the `SC_` legacy rule, the script folder
-layout, and what belongs under `Scripts` / `World` / `Canvas`. In the project rather than at the
+brief for this project. So: `2026-HW_2-Mario/CONVENTIONS.md`, holding four sets of rules - the
+comment rules, the logging rules, the naming and hierarchy rules, and the code-quality rules -
+all of which until now existed only in that brief: sprite naming and pixels per unit, the
+`Sprite_` prefix, the `SC_` legacy rule, the script folder layout, what belongs under `Scripts` /
+`World` / `Canvas`, one class one responsibility, interfaces over growing if/else chains,
+null-checking anything from the Inspector or `GetComponent` or `Find`, no magic numbers, and no
+abstraction before a second real use case. Everything that gets re-pasted every session, in one
+place. In the project rather than at the
 repo root because the repo root is not a git repo, so a file there would be neither versioned nor
 submitted; it travels to Exercise 3 the same way `Assets` already travelled here from 1.5. `README`
 links to it in one line. A new `CLAUDE.md` at the repo root points at it and at `tropes.md`, since
@@ -901,7 +905,11 @@ so this is a comparison against the project's own past practice rather than an o
 Audit: whatever the convention ends up being, check the code written across Stages 1-8.5 against
 it. That work spanned every stage of this project and the convention was being refined while it
 was written, so the odds that all of it complies are low. Worth doing before the video, since the
-video shows the code.
+video shows the code. Applied as direct file edits rather than copy-paste blocks, per Peleg - the
+same one-time departure HW1's Stage 12.5 made for the same reason, and reviewed as a diff. Its own
+commit, separate from Step 6's. Verified the way that stage verified its own pass, with a scripted
+check across every file: header comment present, no trailing comments, no `///`, no block over
+four lines, no stage or plan references, no unused `using` statements.
 
 Widened during this stage's discussion to cover logging as well, since the question Peleg raised
 about log clutter is a style rule rather than a feature and belongs beside the comment rules rather
@@ -910,6 +918,26 @@ meaningful state transitions, name the subject first, and say what changed. 89 `
 across 39 files follow it to varying degrees. Writing the rule down and checking the existing calls
 against it costs nothing beyond reading; anything that would rewrite call sites is a separate
 decision, see Stage 9.5.
+
+**Done so far.** The measurement the step assumed would find a mess found almost none: both
+codebases pass every check Stage 12.5 used, HW2 included. No file without a header, no `///`, no
+trailing comment, no block over four lines, no stage or plan reference, no unused `using`. HW1 is
+253 comment lines against 1114 of code (18.5%) across 108 blocks; HW2 is 402 against 1867 (17.7%)
+across 169. The convention held across eight stages, so the audit's mechanical half was already
+green before it started and the real work was qualitative.
+
+Written down: `CONVENTIONS.md` holding twelve comment rules, eleven logging rules, and the naming,
+hierarchy and code-quality rules that until now only existed in the session brief. A root
+`CLAUDE.md` pointing at it, at `tropes.md` and at this file, plus the working rules. `README.md`
+gains one line linking to `CONVENTIONS.md`.
+
+Applied: the two stale comments (`ProjectileGarlic` and `EnemyMovement` both still said "strike",
+which Stage 2 retired) and the moving tile's per-instance turn log, which the level's nine clouds
+moving in lockstep turned into nine identical lines every two seconds. `MovingFloor` now guards on
+`Time.frameCount` the way `DisappearingFloor` already did, and its message went plural to match.
+
+Still open: the seven remaining logging findings, all of them call-site work, deliberately left to
+Step 6 rather than done twice.
 
 #### Step 6 — The logging system `[ ]`
 
@@ -940,7 +968,16 @@ Four pieces, in `Assets/Scripts/Logging/`:
   the seven deliberate departures from Lesson 6.
 - **`LogFileWriter`** - a MonoBehaviour that hooks `Application.logMessageReceived` and writes the
   session to a file, subscribing in `OnEnable` and unsubscribing in `OnDisable`, which is what
-  Lesson 7's version is missing along with any guard against double-subscribing.
+  Lesson 7's version is missing along with any guard against double-subscribing. The file is
+  `2026-HW_2-Mario/GameLog.txt`, the project root beside this plan, overwritten on each Play
+  session so it is always just the run being looked at, and added to `.gitignore`.
+  `Application.persistentDataPath` is the portable answer and was turned down for burying the file
+  under `AppData`, which is the exact friction this is meant to remove; `Logs/` is Unity's own.
+
+Log lines carry a bracketed category and nothing else - `[Player] Mario jumped (1 of 2)`. The
+Console already shows the originating class and line, and the file gets the stack trace from
+`Application.logMessageReceived`, so a timestamp or a class name in the message would be repeating
+what is already there.
 
 Plus a third Editor window, `Tools → Logs`, per Peleg: one row per category with its own level
 dropdown, so filtering is a couple of clicks rather than hunting for a GameObject. It is a view
@@ -1482,6 +1519,44 @@ _(append entries here as we make design decisions.)_
       root was considered and rejected as a home because it is not a git repo, so nothing there is
       versioned or submitted. A root `CLAUDE.md` points at it, since that file loads automatically
       at the start of every session.
+    - The eight comment rules survived the revisit with four amendments and one addition, every one
+      of them a case where HW1's actual practice was already right and the written rule was wrong
+      or silent. The five, in order of how much they change:
+    - Rule 1's "never what" is contradicted by both codebases and loses. `PlayerJump`'s
+      `groundProbeDepth`, `EnemyMovement`'s `wallCheckBuffer` and `PlayerMovement`'s `deceleration`
+      all carry one-line what-comments, and they are right: a serialized field is an Inspector
+      label as much as a variable, and its units are not in its name. Rule 3 now permits that gloss
+      explicitly.
+    - The house style is narrower than "why", and the narrow version is what got written down: name
+      the alternative that was rejected. 37% of HW1's comment blocks and 47% of HW2's already do,
+      through "rather than", "instead of", "unlike" and "deliberately". It is what generalizes rule
+      4's would-a-reader-delete-this test from branches to fields and classes.
+    - A comment naming another class, event or method is a reference, and a rename has to follow
+      it. Nothing in the eight rules said so, which is why two comments still said "strike" nine
+      stages after strikes were retired. Mechanically checkable, which is what earns it a place in
+      the scripted verification.
+    - Rule 2 gained the header's position (below the `using` block, above the type or its
+      attributes) and an answer for nested types: only when the nested type's existence is
+      non-obvious. The three existing nested types already split that way by accident -
+      `TiledMap.Layer` has a header, `TilePrefabMap.Entry` and `TilePlacerWindow.Mode` don't.
+    - A closing rule, per Peleg: if in doubt, write it so a human reading the file cold understands
+      it, and let that outrank the rest where they conflict.
+    - The logging rules are eleven, derived from the 89 existing calls rather than invented. The
+      first five were already near-universal (transitions not frames, subject first, `" - "` for
+      detail and `": "` for a name, no terminal punctuation, `<action> ignored - <reason>`). The
+      four that matter are the ones the code disagrees with itself about: name the instance only
+      when several can exist, never put a class name in the message, one event one line, and one
+      line for a transition many instances make together. Those four are exactly what Step 6's
+      rewrite applies, which is the reason they had to be settled here.
+    - Seven of the nine logging findings were left for Step 6 rather than fixed in Step 5, since
+      Step 6 touches all 75 call sites anyway and doing them twice would split the same lines
+      across two commits. The exception pulled forward was `MovingFloor`, on the grounds that nine
+      identical lines every two seconds makes every log read between now and Step 6 worse, and the
+      fix was four lines copied from a file that already had it.
+    - `CONVENTIONS.md` is written for whoever is working on the code, not for the grader - Peleg's
+      call. So each rule states what to do and stops, with the reasoning left here. The alternative
+      was roughly twice the length and would have read as a defence of the codebase rather than a
+      working document.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own

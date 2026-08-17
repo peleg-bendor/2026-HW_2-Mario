@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// One garlic thrown by an enemy. Whether hitting Mario costs him a strike is not decided here -
+// One garlic thrown by an enemy. Whether hitting Mario costs him health is not decided here -
 // that comes from the SC_Death attached alongside this script.
 public class ProjectileGarlic : MonoBehaviour
 {
