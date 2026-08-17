@@ -27,9 +27,9 @@ order: items 1-4 create the four objects, 5-7 make the tooling handle them, 8 is
 all of it, and 9 needs everything to exist first. Stage 0 gets the project versioned before any
 feature work; Stage 0.5 fixes things wrong in the inherited code before anything new is built on
 top of them. Stage 8.5 collects the projectile problems found while building other things, none of
-which anything else depends on. Stage 9.5 holds optional work that is explicitly not required by
-the exercise, and Stage 10 is the submission video. Each stage gets its own design discussion before code, the same
-way every stage of HW1 and 1.5 did.
+which anything else depends on. Stage 10 is the submission video, and Stage 11 parks work that is
+not required by the exercise and is not being done here at all. Each stage gets its own design
+discussion before code, the same way every stage of HW1 and 1.5 did.
 
 ## Tile Roster
 
@@ -746,7 +746,7 @@ reached and raising it alone would have done nothing.
 Fireball `Gravity Scale` 0.5 -> 0 and both `lifetime` values 3 -> 6. The fireball and the garlic now
 have the same flight model, which is what they always read as on screen.
 
-### Stage 9 — The full level `[ ]`
+### Stage 9 — The full level `[x]`
 
 Exercise item 9: build a complete playable level with the tile editor and save the text file with
 all the level information inside Unity.
@@ -762,7 +762,7 @@ Done early, during Stage 1's design discussion, since it cost nothing to do imme
 than wait for Stage 9. `LevelWindow` holds the file as a `TextAsset` object reference, not a
 path string, so the rename needed no code change and the Inspector reference survived it.
 
-#### Step 2 — Export from Tiled once, then author in Unity `[~]`
+#### Step 2 — Export from Tiled once, then author in Unity `[x]`
 
 Item 9 asks for the level to be built "using the tile editor", which most likely means Tiled, and
 Stage 5 leaves Tiled holding a current map with the new tile types in it. So export from there
@@ -786,8 +786,11 @@ nothing is owed to Stage 10 as things stand. Grid is unchanged at 30x20; the lev
 objects to 259. Three stray clouds that had been sitting in the scene since Stage 8.5's testing,
 never saved to the file, were cleared by the first rebuild.
 
-Still open: whatever the Step 7 playthrough turns up, applied with the Tile Placer and saved back.
-Any such tweak makes `Level01.tmx` stale again and re-owes Stage 10 the re-sync.
+**Closed.** Step 7 turned up no level changes, so nothing was applied with the Tile Placer and
+`Level01.tmx` never went stale. Re-verified at the end of the stage, after the level had been
+rebuilt once more while undoing a test that removed the portal's SpriteRenderer: all 600 cells of
+`Level01.txt` match `Level01.tmx` exactly, 30x20 with 259 non-zero, and `World` holds 259 children.
+Stage 10 is owed no re-sync.
 
 #### Step 3 — Close the level from the outside `[x]`
 
@@ -875,7 +878,7 @@ Camera sits in the saved scene stops mattering once `Awake` overwrites it.
 slide, the follow feels unchanged, and a scene reload after a game over opens centred too - the
 case that happens most often and the one the video would have shown.
 
-#### Step 5 — Conventions: settle them, write them down, audit against them `[~]`
+#### Step 5 — Conventions: settle them, write them down, audit against them `[x]`
 
 Peleg's addition, raised as Stage 8.5 closed. The eight-point convention this project has been
 following is already written down and called finalized, so this step is not a blank slate: it is
@@ -917,7 +920,7 @@ than in its own place. The project has one logging habit today, never written do
 meaningful state transitions, name the subject first, and say what changed. 89 `Debug.*` calls
 across 39 files follow it to varying degrees. Writing the rule down and checking the existing calls
 against it costs nothing beyond reading; anything that would rewrite call sites is a separate
-decision, see Stage 9.5.
+decision, settled in Step 6.
 
 **Done so far.** The measurement the step assumed would find a mess found almost none: both
 codebases pass every check Stage 12.5 used, HW2 included. No file without a header, no `///`, no
@@ -939,10 +942,9 @@ moving in lockstep turned into nine identical lines every two seconds. `MovingFl
 Still open: the seven remaining logging findings, all of them call-site work, deliberately left to
 Step 6 rather than done twice.
 
-#### Step 6 — The logging system `[~]`
+#### Step 6 — The logging system `[x]`
 
-Peleg's, moved here from Stage 9.5 because he wants it inside the required stage rather than the
-optional one. No exercise item asks for it. It answers a real problem instead: the Console gets
+Peleg's, moved here from the optional stage because he wants it inside the required one. No exercise item asks for it. It answers a real problem instead: the Console gets
 noisier every stage, `Debug.Log` is not stripped from a built game, and reading a session's output
 currently means copying the Console into `OutputLogsTemp.txt` by hand.
 
@@ -1025,37 +1027,36 @@ The tier ended at twelve rather than the ten designed, on the evidence of that l
 at-cap message fires every three seconds for as long as the level is full, and `Mario landed on
 floor` ran to 59 lines in one session. Both are Peleg's call.
 
-Still open: confirming the `Tools > Logs` window, then the commit.
+The `Tools > Logs` window was confirmed working alongside it, editing the same component the
+Inspector shows rather than a copy of the values.
 
-#### Step 7 — Full playthrough `[ ]`
+Two loose ends, neither of them blocking. The conversion script wrote its files with LF endings
+against a project that was CRLF, so 46 of the 63 scripts changed line endings and that is most of
+the commit's diff; the repo now holds both, and normalizing it wants a `.gitattributes` rather than
+another sweep. And the comment audit reopened afterwards: Peleg read the result and said the
+comments looked long, which the measurement disagreed with (HW2 matched HW1 almost exactly at 6-7%
+four-line blocks and ~185 characters a block) but which was right about the six densest, each of
+which was stacking two claims into one comment. Comment rule 8 came out of that - a comment makes
+one point - and applying it to those six left HW2 with the same seven four-line blocks HW1 has, all
+of them inherited rather than written here.
+
+#### Step 7 — Full playthrough `[x]`
 
 Every item in one session: bolt, health, rock, cloud, double jump, plus everything carried over
 from HW1 and 1.5 — weapons, both enemies, the spawner, the star, key/gateway/portal, game over
-and game won. Last step in the stage, so it also covers the death plane, the camera snap and the
-logging rewrite.
+and game won. Last step in the stage, so it also covers the level's earth border, the camera snap
+and the logging rewrite.
+
+**Closed by Peleg** without a separate scripted run: he had already tested each item as its stage
+landed, and Step 6's own confirmation session covered most of this list end to end - a win and a
+game over in one file, both weapons, both enemies, the spawner reaching its cap, the star
+suppressing a ghost hit, and the bolt, heart, double jump and both new tiles all logging correctly.
+Recorded honestly as his call rather than as a log read here, unlike the other steps in this stage.
 
 Timings, measured by Peleg on the finished level and worth having before Stage 10's script is
 written: about 1:30 for a full run collecting everything and killing both vampires, about 0:35
 going straight for the key and the gateway, and he clears it reliably. So the video can afford one
 complete run rather than a partial one, and the 1:30 figure is the number to budget against.
-
-### Stage 9.5 — Optional extras `[ ]`
-
-Not required by Exercise 2. Only if everything above is done, committed and pushed, and before the
-video, since anything built here is something the video has to show.
-
-- **Coin counter as MVC.** `SC_CoinsManager` is the only class in the project that both owns a
-  count and draws it — strikes, axes and selected weapon all split those jobs already, so it's the
-  odd one out regardless of MVC. Once Stage 2's trio exists, converting coins is largely a copy of
-  a shape already built and tested.
-- **Fade on the disappearing tile.** Also makes the tile's state readable a moment before it
-  actually goes, which is a real gameplay improvement rather than only polish.
-- **The logging system moved out of here** into Stage 9 Step 6, per Peleg, who wants it inside the
-  required stage rather than the optional one. Nothing about it is required by the exercise; that
-  is a deliberate choice about where the work sits, not a claim that item 9 asks for it.
-- **Not Lesson 8.** Nothing in Exercise 2 asks for reflection or a DLL. Building it now would be
-  guessing at Exercise 3 the way 1.5 guessed at Exercise 2, which is the trade that closed that
-  project. If Exercise 3 wants it, it belongs there or in an `HW_2.5` sandbox.
 
 ### Stage 10 — Video script `[ ]`
 
@@ -1087,6 +1088,30 @@ Also owed here, from Stage 9's discussion: say out loud that Save Level delibera
 the scene. The two are separate on purpose, so a tile can be dropped in and tried without
 committing it to the level file. `LevelWindow`'s own header comment carries the same sentence, and
 the README's level section says it too.
+
+### Stage 11 — Deferred to a later sandbox `[ ]`
+
+Not required by Exercise 2, and deliberately not being built in this project. Parked here after the
+video rather than before it, per Peleg: none of it is worth delaying the hand-in for, and anything
+built now is something the video would then have to show. It lives here so it doesn't get lost -
+the intended home is a `2026-2.5-Mario` sandbox, which doesn't exist yet, the same way `2026-1.5-
+Mario` sat between Exercises 1 and 2.
+
+- **Coin counter as MVC.** `SC_CoinsManager` is the only class in the project that both owns a
+  count and draws it — health, axes and selected weapon all split those jobs already, so it's the
+  odd one out regardless of MVC. Now that Stage 2's trio exists, converting coins is largely a copy
+  of a shape already built and tested.
+- **Fade on the disappearing tile.** Also makes the tile's state readable a moment before it
+  actually goes, which is a real gameplay improvement rather than only polish.
+- **Line endings.** The Step 6 conversion wrote LF into a CRLF project, so 46 of the 63 scripts
+  changed endings and 17 didn't. Nothing breaks; normalizing wants a `.gitattributes` rather than
+  another sweep.
+- **The logging system is not here.** It moved into Stage 9 Step 6 and is built, per Peleg, who
+  wanted it inside the required stage. Nothing about it is required by the exercise; that was a
+  choice about where the work sits, not a claim that item 9 asks for it.
+- **Not Lesson 8.** Nothing in Exercise 2 asks for reflection or a DLL. Building it now would be
+  guessing at Exercise 3 the way 1.5 guessed at Exercise 2, which is the trade that closed that
+  project. If Exercise 3 wants it, it belongs there or in the 2.5 sandbox.
 
 ## Notes / Decisions Log
 
@@ -1526,7 +1551,8 @@ _(append entries here as we make design decisions.)_
       painting 34 tiles in the editor the requirement already names. The tiles also close a
       spawner bug nobody was hunting: a ghost that walked off the level's end fell forever and held
       one of the grave's three slots for good.
-    - The whole logging system gets built, in Stage 9 rather than 9.5 - Peleg's call twice over,
+    - The whole logging system gets built, inside the required stage rather than the optional one -
+      Peleg's call twice over,
       first overruling the proposal to build only the file sink and defer the rest, then moving it
       out of the optional stage. The argument against was cost and timing: 75 runtime call sites
       across 37 files, rewritten immediately before a video that shows the code, with no exercise
