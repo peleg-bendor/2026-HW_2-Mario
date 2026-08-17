@@ -788,49 +788,66 @@ saved to the file, were cleared by the rebuild.
 Still open: whatever the Step 6 playthrough turns up, applied with the Tile Placer and saved back.
 Any such tweak makes `Level01.tmx` stale again and re-owes Stage 10 the re-sync.
 
-#### Step 3 — The death plane `[ ]`
+#### Step 3 — Close the level from the outside `[ ]`
 
-Not an exercise item. Found while checking the level over: nothing bounds the level from below, and
-`SC_Death` sits only on spikes, both enemies and the garlic, so walking off the left or right edge
-drops Mario forever with the camera following him down. No respawn, no game over, no way out but
-stopping Play. A level that can be fallen out of is a weak answer to "a complete playable level".
+Not an exercise item. Found while checking the level over: nothing bounded it, and `SC_Death` sits
+only on spikes, both enemies and the garlic, so walking off the left or right edge dropped Mario
+forever with the camera following him down. No respawn, no game over, no way out but stopping Play.
+A level that can be fallen out of is a weak answer to "a complete playable level".
 
-A root `DeathPlane` GameObject, sibling of `World`/`Scripts`/`Canvas`, carrying a `BoxCollider2D`,
-the existing `SC_Death`, `SC_Floor`, and one new `DeathPlane` script whose only job is placing and
-sizing the collider under the level.
+**The answer is two columns of earth tiles**, painted in Tiled at x = 1 and x = 28 running from the
+ground row up, so the level is closed by level data. Zero code, authored in the tile editor the
+requirement names, stored in `Level01.txt` so it travels with the level, and visible, so the
+boundary reads as design rather than as an invisible collider somebody has to explain.
 
-Four decisions inside that, all made in the discussion:
+It also fixes something nobody was looking for. `EnemyMovement` deliberately walks off whatever
+edge it reaches, and `EnemySpawner` prunes its list by `enemy == null`, so a ghost that walked off
+the end of the ground row fell forever and kept occupying a slot against the cap of 3 permanently.
+Three wanderers and the grave stops spawning, silently. With a wall there the ghost turns around,
+which is what `IsWallAhead` was written for.
 
-- **It is not a tile, deliberately.** Tiles are what the level file stores one per cell; the
-  boundary is derived from where the tiles are. Storing it would mean re-authoring it every time
-  the level's lowest row moves. The alternative considered and dropped was a row of spikes along
-  y = 0, which needs no code at all but costs ~30 objects in the level file and only covers the
-  width it was painted to.
-- **It reuses `SC_Death` rather than implementing damage.** That component already funnels both
-  collision and trigger contact into `OnHazardCollision`, which `HealthController`, `PlayerDeath`
-  and `PlayerSpeedBoost` each subscribe to independently, so falling in behaves exactly like
-  landing on spikes with nothing new written: one health lost, respawn at start, boost cancelled,
-  game over at zero, and the star suppresses it the same way.
-- **Solid collider, not a trigger, and it carries `SC_Floor` too.** The star is why.
-  `PlayerDeath` skips the respawn while `IsInvincible` is true and `OnTriggerEnter2D` fires only
-  once, so an invincible Mario would pass through a trigger and keep falling with nothing left to
-  fire when the star ran out. A solid collider catches him on an invisible floor instead, and
-  `SC_Floor` makes it count as terrain so he keeps his jumps and the next landing after the star
-  ends kills him properly. Side benefit: an axe thrown off the map stops falling.
-- **The line is a Gizmo, not a `LineRenderer`.** Editor-only, no runtime cost, visible in the
-  Scene view while authoring - which is also where it would be shown on camera. In game the player
-  never sees the boundary before falling into it, and a red line floating under the level would
-  read as content.
+One corner to test rather than assume, since a column can only be as tall as the grid: the tower at
+x = 27 reaches y = 17, and a double jump from there may clear a wall whose top is at y = 19. If it
+does, the level has one way out and it wants either the grid two rows taller (Tiled's Map -> Resize
+with a Y offset of 2 keeps every existing cell at the same y) or that tower shortened.
 
-The script fits itself to the level rather than taking a hardcoded Y: read `World`'s children,
-find the lowest tile, sit `tilesBelowLowest` under it, span the level's width plus a margin. Not a
-new abstraction but the same habit the codebase already has - `CameraFollow` reads its own z
-instead of hardcoding it, `SC_Floor.IsAboveTile` reads collider extents live, `LevelWindow` derives
-the grid size from what it finds. A hardcoded number would go stale silently the first time Build
-Level rebuilds `World` from a changed file.
+#### The scripted version, built and then removed
 
-Also, no floor columns at the level's ends. With the death plane in place, walking off the side
-is a pit that costs one health and returns Mario to the start, which is the right outcome.
+Recorded rather than deleted, because it was built, confirmed working, and thrown away, and the
+reason is the interesting part.
+
+The first answer was a root `DeathPlane` object carrying a `BoxCollider2D`, the existing
+`SC_Death`, `SC_Floor`, and a script that measured `World` and sat the collider a fixed drop below
+the lowest tile, drawing a red line as a Gizmo. It worked: a fall cost a health point, respawned
+Mario at the start and drove the game over at zero, all through subscribers that already existed,
+with no new hazard logic written. Three decisions in it are still worth having on record, because
+they would come back if this is ever wanted again:
+
+- **A boundary is not a tile.** Tiles are what the level file stores one per cell; a boundary is
+  derived from where the tiles are, so storing it means re-authoring it whenever the lowest row
+  moves. That argument is what made a script look right, and it is also what the earth columns
+  quietly reject: for a level that is finished, "derived" buys nothing that "painted" doesn't.
+- **Reuse `SC_Death` rather than implement damage.** It already funnels collision and trigger
+  contact into `OnHazardCollision`, which `HealthController`, `PlayerDeath` and `PlayerSpeedBoost`
+  each subscribe to independently.
+- **Solid, not a trigger.** `PlayerDeath` skips the respawn while `IsInvincible` is true and
+  `OnTriggerEnter2D` fires once, so an invincible Mario would pass through a trigger with nothing
+  left to fire when the star ran out.
+
+That last point is where it came apart. Solid meant an invincible Mario landed on the boundary and
+stood there, and when the star expired nothing fired, because `OnCollisionEnter2D` had already run
+for a contact that never broke. Recoverable by jumping, which is not the same as fixed. A second
+object, `LevelWalls`, was added to make that case unreachable - two scripted colliders fitted to the
+level, no `SC_Floor` on them so a wall could never read as ground - and at that point Peleg called
+the whole thing overkill for this exercise and replaced it with tiles. Correctly: three objects and
+two scripts of unrequired machinery, to be shown and justified in a video about nine other things.
+
+Both scripts and all four GameObjects were removed. Nothing else referenced them.
+
+Not a bug, recorded because it looked like one during the testing: resting on the death plane,
+Mario's sprite hung slightly below the red line. His collider is a circle narrower than his sprite
+is tall, so he sits that far below any surface he stands on; every floor tile hides it behind its
+own sprite and the boundary had none.
 
 #### Step 4 — The camera starts on Mario `[ ]`
 
@@ -842,11 +859,23 @@ Fixed in code rather than by moving the camera in the Inspector: Mario is placed
 builder, so an Inspector position goes stale the moment his cell moves in the level file. Two
 lines, matching the class's own habit of reading values live instead of hardcoding them.
 
-#### Step 5 — Comment convention: settle it and audit against it `[ ]`
+#### Step 5 — Conventions: settle them, write them down, audit against them `[ ]`
 
 Peleg's addition, raised as Stage 8.5 closed. The eight-point convention this project has been
 following is already written down and called finalized, so this step is not a blank slate: it is
-a revisit plus a sweep. Two halves.
+a revisit plus a sweep. Three halves, by the time the discussion finished with it.
+
+Write it down somewhere durable, which is the part that was missing. HW1 put its eight rules in
+its own Decisions Log, and the direct consequence is that they had to be re-typed into the standing
+brief for this project. So: `2026-HW_2-Mario/CONVENTIONS.md`, holding the comment rules, the
+logging rules, and the naming and hierarchy rules that until now existed only in that brief -
+sprite naming and pixels per unit, the `Sprite_` prefix, the `SC_` legacy rule, the script folder
+layout, and what belongs under `Scripts` / `World` / `Canvas`. In the project rather than at the
+repo root because the repo root is not a git repo, so a file there would be neither versioned nor
+submitted; it travels to Exercise 3 the same way `Assets` already travelled here from 1.5. `README`
+links to it in one line. A new `CLAUDE.md` at the repo root points at it and at `tropes.md`, since
+that file is loaded at the start of every session and is what stops the brief needing to be pasted
+again.
 
 Revisit: read how `2026-HW_1-Mario` actually comments its code, which Peleg rates as good usage,
 and compare it against what the current eight points say. Where the two disagree, the question is
@@ -866,11 +895,67 @@ across 39 files follow it to varying degrees. Writing the rule down and checking
 against it costs nothing beyond reading; anything that would rewrite call sites is a separate
 decision, see Stage 9.5.
 
-#### Step 6 — Full playthrough `[ ]`
+#### Step 6 — The logging system `[ ]`
+
+Peleg's, moved here from Stage 9.5 because he wants it inside the required stage rather than the
+optional one. No exercise item asks for it. It answers a real problem instead: the Console gets
+noisier every stage, `Debug.Log` is not stripped from a built game, and reading a session's output
+currently means copying the Console into `OutputLogsTemp.txt` by hand.
+
+Ordered after Step 5 on purpose, so the rewrite applies a written convention rather than inventing
+one call site at a time.
+
+Four pieces, in `Assets/Scripts/Logging/`:
+
+- **`GameLog`** - a static class, `GameLog.Info(LogCategory.Player, "...")` and the same for
+  `Warning` and `Error`. Not an extension method: Lesson 7's `this.LogErrors()` dresses global
+  behaviour as an instance call, which is the exact thing this plan already criticises about it.
+  Not a per-class logger field either, which would mean a new field in 37 files. `Info` carries
+  `[Conditional("UNITY_EDITOR")]` and `[Conditional("DEVELOPMENT_BUILD")]` so the call and its
+  arguments are deleted at compile time from a release build; `Warning` and `Error` stay, since a
+  shipped game should still report real problems.
+- **`LogCategory`** - seven values, taken from where the calls actually are rather than invented:
+  `Player`, `Enemy`, `Weapon`, `Projectile`, `Pickup`, `Tile`, `Game`. Explicit rather than derived
+  from the calling class, because Unity's Console already shows the class and line - the value is
+  the grouping above class level, which only an explicit enum gives.
+- **`LogSettings`** - a MonoBehaviour on a child of `Scripts`, holding one level per category and
+  pushing them into `GameLog`. A `ScriptableObject` was rejected: a static class would have to
+  reach it through `Resources.Load`, and the README lists having no `Resources` folder as one of
+  the seven deliberate departures from Lesson 6.
+- **`LogFileWriter`** - a MonoBehaviour that hooks `Application.logMessageReceived` and writes the
+  session to a file, subscribing in `OnEnable` and unsubscribing in `OnDisable`, which is what
+  Lesson 7's version is missing along with any guard against double-subscribing.
+
+Plus a third Editor window, `Tools → Logs`, per Peleg: one row per category with its own level
+dropdown, so filtering is a couple of clicks rather than hunting for a GameObject. It is a view
+onto the `LogSettings` component rather than a second copy of the settings, so there is one source
+of truth and the values still exist in a build. Editing while Play is running takes effect
+immediately and reverts on exiting Play, the same as any other Inspector edit.
+
+The per-category level replaces what the first sketch had as two separate things, a global minimum
+plus a set of enabled categories: with `Off` as one of the dropdown's values, one control per
+category does both jobs.
+
+`Assets/Scripts/Editor/` keeps plain `Debug` - 14 of the 89 calls. They are tool feedback rather
+than game logs, they never reach a build, and they run with no scene loaded for `LogSettings` to
+have configured. That leaves 75 call sites across 37 files to convert.
+
+The risk, stated once rather than discovered later: this rewrites files that eight stages confirmed
+working, immediately before a video that shows the code. Three mitigations - its own commit,
+separate from Steps 3 and 4; a scripted check across all 37 files afterwards, the way HW1's Stage
+12.5 verified its own comment pass; and Step 7, which is a full regression run anyway.
+
+#### Step 7 — Full playthrough `[ ]`
 
 Every item in one session: bolt, health, rock, cloud, double jump, plus everything carried over
 from HW1 and 1.5 — weapons, both enemies, the spawner, the star, key/gateway/portal, game over
-and game won.
+and game won. Last step in the stage, so it also covers the death plane, the camera snap and the
+logging rewrite.
+
+Timings, measured by Peleg on the finished level and worth having before Stage 10's script is
+written: about 1:30 for a full run collecting everything and killing both vampires, about 0:35
+going straight for the key and the gateway, and he clears it reliably. So the video can afford one
+complete run rather than a partial one, and the 1:30 figure is the number to budget against.
 
 ### Stage 9.5 — Optional extras `[ ]`
 
@@ -883,16 +968,9 @@ video, since anything built here is something the video has to show.
   a shape already built and tested.
 - **Fade on the disappearing tile.** Also makes the tile's state readable a moment before it
   actually goes, which is a real gameplay improvement rather than only polish.
-- **A log-to-file extension.** Lesson 7's `ErrorLoggerExtension` hooks
-  `Application.logMessageReceived` and re-prints errors to the same Console that already showed
-  them, which adds nothing (and has no unsubscribe, no double-subscribe guard, and responds to an
-  error by logging an error). The version worth building writes the session's log to a file on its
-  own, which would take a manual copy-out step out of the working loop here. Scoped in Stage 9's
-  discussion to the file sink only: it touches no existing call site, so it carries no regression
-  risk before the video. A log wrapper with levels and categories, and `[Conditional]` stripping so
-  the calls leave a real build, is the other half of what the topic is worth - 89 call sites across
-  39 files, no exercise item behind it, and a large diff in code the video shows. That half belongs
-  to Exercise 3 or an `HW_2.5` sandbox, not here.
+- **The logging system moved out of here** into Stage 9 Step 6, per Peleg, who wants it inside the
+  required stage rather than the optional one. Nothing about it is required by the exercise; that
+  is a deliberate choice about where the work sits, not a claim that item 9 asks for it.
 - **Not Lesson 8.** Nothing in Exercise 2 asks for reflection or a DLL. Building it now would be
   guessing at Exercise 3 the way 1.5 guessed at Exercise 2, which is the trade that closed that
   project. If Exercise 3 wants it, it belongs there or in an `HW_2.5` sandbox.
@@ -1358,20 +1436,36 @@ _(append entries here as we make design decisions.)_
       show the pass-through is a design decision rather than a bug. It is the only such case in
       the level; the three clouds at (2,9), (3,9) and (4,9) overlap each other's paths but move in
       lockstep and never meet.
-    - The death plane is not a tile, reuses `SC_Death` instead of implementing damage, is a solid
-      collider rather than a trigger because of the star, and draws its line as a Gizmo. Full
-      reasoning in Stage 9 Step 3.
-    - Logging splits into two halves and only one of them happens here. A file sink touches no call
-      site and removes the manual copy into `OutputLogsTemp.txt` from the working loop, so it stays
-      on the Stage 9.5 list. A `Log` wrapper with levels, categories and `[Conditional]` stripping
-      is what the industry actually does - `Debug.Log` is not stripped from release builds and its
-      string concatenation allocates even when nobody reads the message - but it would rewrite 89
-      call sites across 39 files, immediately before a video that shows the code, with no exercise
-      item behind it. Deferred. Two things soften the wait: every log line in this project already
-      leads with its subject, and Unity's Console already shows the originating script and line, so
-      typing in the Console's search box gets most of channel filtering for free.
-    - Step 5 widened from comments to comments and logging, since log clutter is a style rule and
-      belongs beside the comment rules rather than in a place of its own.
+    - The level is closed by two columns of earth tiles rather than by colliders a script places -
+      Peleg's call, after a scripted death plane and a scripted pair of walls had both been built
+      and one of them confirmed working. The scripted version's own reasoning was sound and is kept
+      in Stage 9 Step 3; what killed it was scope. Three objects and two scripts that no exercise
+      item asks for, all of it needing explanation in a video about nine other things, against
+      painting 34 tiles in the editor the requirement already names. The tiles also close a
+      spawner bug nobody was hunting: a ghost that walked off the level's end fell forever and held
+      one of the grave's three slots for good.
+    - The whole logging system gets built, in Stage 9 rather than 9.5 - Peleg's call twice over,
+      first overruling the proposal to build only the file sink and defer the rest, then moving it
+      out of the optional stage. The argument against was cost and timing: 75 runtime call sites
+      across 37 files, rewritten immediately before a video that shows the code, with no exercise
+      item behind it. The arguments for are that `Debug.Log` survives into a release build and its
+      string concatenation allocates whether or not anyone reads the message, that the Console gets
+      noisier every stage, and that the file sink removes a manual step from the working loop.
+    - Settings are one level per category rather than a global minimum plus a set of enabled
+      categories. With `Off` in the dropdown, one control per category does both jobs, and the
+      Editor window Peleg asked for becomes one row per category instead of two separate controls.
+    - The `Tools → Logs` window is a view onto the `LogSettings` component, not its own copy of the
+      settings. Two copies would mean deciding which one a build reads. Worth being honest that a
+      seven-element array on the component would already give the same control in the Inspector -
+      what the window buys is not having to find the GameObject, and it is the third editor tool in
+      a project whose exercise is largely about editor tooling.
+    - Step 5 widened twice: from comments alone to comments and logging, since log clutter is a
+      style rule and belongs beside the comment rules; and then to writing the whole thing down in
+      `CONVENTIONS.md` rather than in this file. HW1 kept its rules in its own Decisions Log and
+      they had to be re-typed by hand into this project's brief, which is the argument. The repo
+      root was considered and rejected as a home because it is not a git repo, so nothing there is
+      versioned or submitted. A root `CLAUDE.md` points at it, since that file loads automatically
+      at the start of every session.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own
