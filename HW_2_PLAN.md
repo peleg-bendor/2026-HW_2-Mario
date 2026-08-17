@@ -762,7 +762,7 @@ Done early, during Stage 1's design discussion, since it cost nothing to do imme
 than wait for Stage 9. `LevelWindow` holds the file as a `TextAsset` object reference, not a
 path string, so the rename needed no code change and the Inspector reference survived it.
 
-#### Step 2 — Export from Tiled once, then author in Unity `[ ]`
+#### Step 2 — Export from Tiled once, then author in Unity `[~]`
 
 Item 9 asks for the level to be built "using the tile editor", which most likely means Tiled, and
 Stage 5 leaves Tiled holding a current map with the new tile types in it. So export from there
@@ -772,15 +772,101 @@ the requirement and gives the video one clean Tiled-to-Unity beat.
 Stage 5 Step 5 runs this path once already, so what happens here is a repeat of something known to
 work rather than the first attempt.
 
-Everything after that is Unity-side: `Tools → Tile Placer` for the real placement work, putting
-the new tile types where each can be demonstrated on camera, then `Save Level` and `Build Level`
-to confirm the round trip.
+The division of labour, settled in this stage's discussion: Tiled authors the level because
+painting a grid is what it is good at, and the Unity tools handle tweaks afterwards because
+re-exporting for every small change is slow and desyncs the two files. The Tile Placer pass is
+therefore optional rather than the main event - it is there for the adjustments a playtest turns
+up, not to re-place 173 objects by hand.
 
-Leaves one thing owed to Stage 10, because the Tile Placer work makes `Level01.tmx` stale the
-moment it starts: re-sync the map from the finished `Level01.txt` before recording anything, or the
-on-camera Export replaces the authored level with whatever Tiled still remembers.
+**Done so far:** Peleg designed the level in Tiled and ran the whole chain - Export, Build Level,
+Save Level, Ctrl+S on the scene. Verified afterwards by reading the files rather than the object
+counts: `Level01.tmx`, `Level01.txt` and the saved scene all hold the same 173 objects at the same
+cells, so all three are in sync and nothing is owed to Stage 10 as things stand. Grid is unchanged
+at 30x20. Three stray clouds that had been sitting in the scene since Stage 8.5's testing, never
+saved to the file, were cleared by the rebuild.
 
-#### Step 3 — Full playthrough `[ ]`
+Still open: whatever the Step 6 playthrough turns up, applied with the Tile Placer and saved back.
+Any such tweak makes `Level01.tmx` stale again and re-owes Stage 10 the re-sync.
+
+#### Step 3 — The death plane `[ ]`
+
+Not an exercise item. Found while checking the level over: nothing bounds the level from below, and
+`SC_Death` sits only on spikes, both enemies and the garlic, so walking off the left or right edge
+drops Mario forever with the camera following him down. No respawn, no game over, no way out but
+stopping Play. A level that can be fallen out of is a weak answer to "a complete playable level".
+
+A root `DeathPlane` GameObject, sibling of `World`/`Scripts`/`Canvas`, carrying a `BoxCollider2D`,
+the existing `SC_Death`, `SC_Floor`, and one new `DeathPlane` script whose only job is placing and
+sizing the collider under the level.
+
+Four decisions inside that, all made in the discussion:
+
+- **It is not a tile, deliberately.** Tiles are what the level file stores one per cell; the
+  boundary is derived from where the tiles are. Storing it would mean re-authoring it every time
+  the level's lowest row moves. The alternative considered and dropped was a row of spikes along
+  y = 0, which needs no code at all but costs ~30 objects in the level file and only covers the
+  width it was painted to.
+- **It reuses `SC_Death` rather than implementing damage.** That component already funnels both
+  collision and trigger contact into `OnHazardCollision`, which `HealthController`, `PlayerDeath`
+  and `PlayerSpeedBoost` each subscribe to independently, so falling in behaves exactly like
+  landing on spikes with nothing new written: one health lost, respawn at start, boost cancelled,
+  game over at zero, and the star suppresses it the same way.
+- **Solid collider, not a trigger, and it carries `SC_Floor` too.** The star is why.
+  `PlayerDeath` skips the respawn while `IsInvincible` is true and `OnTriggerEnter2D` fires only
+  once, so an invincible Mario would pass through a trigger and keep falling with nothing left to
+  fire when the star ran out. A solid collider catches him on an invisible floor instead, and
+  `SC_Floor` makes it count as terrain so he keeps his jumps and the next landing after the star
+  ends kills him properly. Side benefit: an axe thrown off the map stops falling.
+- **The line is a Gizmo, not a `LineRenderer`.** Editor-only, no runtime cost, visible in the
+  Scene view while authoring - which is also where it would be shown on camera. In game the player
+  never sees the boundary before falling into it, and a red line floating under the level would
+  read as content.
+
+The script fits itself to the level rather than taking a hardcoded Y: read `World`'s children,
+find the lowest tile, sit `tilesBelowLowest` under it, span the level's width plus a margin. Not a
+new abstraction but the same habit the codebase already has - `CameraFollow` reads its own z
+instead of hardcoding it, `SC_Floor.IsAboveTile` reads collider extents live, `LevelWindow` derives
+the grid size from what it finds. A hardcoded number would go stale silently the first time Build
+Level rebuilds `World` from a changed file.
+
+Also, no floor columns at the level's ends. With the death plane in place, walking off the side
+is a pit that costs one health and returns Mario to the start, which is the right outcome.
+
+#### Step 4 — The camera starts on Mario `[ ]`
+
+`CameraFollow` finds Mario in `Awake` but never snaps to him, so `LateUpdate` smooth-damps in from
+wherever the Main Camera was last left in the scene. Visible on every Play and on every scene
+reload, which means every game over, every win, and every take of the video.
+
+Fixed in code rather than by moving the camera in the Inspector: Mario is placed by the level
+builder, so an Inspector position goes stale the moment his cell moves in the level file. Two
+lines, matching the class's own habit of reading values live instead of hardcoding them.
+
+#### Step 5 — Comment convention: settle it and audit against it `[ ]`
+
+Peleg's addition, raised as Stage 8.5 closed. The eight-point convention this project has been
+following is already written down and called finalized, so this step is not a blank slate: it is
+a revisit plus a sweep. Two halves.
+
+Revisit: read how `2026-HW_1-Mario` actually comments its code, which Peleg rates as good usage,
+and compare it against what the current eight points say. Where the two disagree, the question is
+which one is right, not which one is older. HW1's scripts are the same codebase one exercise back,
+so this is a comparison against the project's own past practice rather than an outside standard.
+
+Audit: whatever the convention ends up being, check the code written across Stages 1-8.5 against
+it. That work spanned every stage of this project and the convention was being refined while it
+was written, so the odds that all of it complies are low. Worth doing before the video, since the
+video shows the code.
+
+Widened during this stage's discussion to cover logging as well, since the question Peleg raised
+about log clutter is a style rule rather than a feature and belongs beside the comment rules rather
+than in its own place. The project has one logging habit today, never written down: log at
+meaningful state transitions, name the subject first, and say what changed. 89 `Debug.*` calls
+across 39 files follow it to varying degrees. Writing the rule down and checking the existing calls
+against it costs nothing beyond reading; anything that would rewrite call sites is a separate
+decision, see Stage 9.5.
+
+#### Step 6 — Full playthrough `[ ]`
 
 Every item in one session: bolt, health, rock, cloud, double jump, plus everything carried over
 from HW1 and 1.5 — weapons, both enemies, the spawner, the star, key/gateway/portal, game over
@@ -801,7 +887,12 @@ video, since anything built here is something the video has to show.
   `Application.logMessageReceived` and re-prints errors to the same Console that already showed
   them, which adds nothing (and has no unsubscribe, no double-subscribe guard, and responds to an
   error by logging an error). The version worth building writes the session's log to a file on its
-  own, which would take a manual copy-out step out of the working loop here.
+  own, which would take a manual copy-out step out of the working loop here. Scoped in Stage 9's
+  discussion to the file sink only: it touches no existing call site, so it carries no regression
+  risk before the video. A log wrapper with levels and categories, and `[Conditional]` stripping so
+  the calls leave a real build, is the other half of what the topic is worth - 89 call sites across
+  39 files, no exercise item behind it, and a large diff in code the video shows. That half belongs
+  to Exercise 3 or an `HW_2.5` sandbox, not here.
 - **Not Lesson 8.** Nothing in Exercise 2 asks for reflection or a DLL. Building it now would be
   guessing at Exercise 3 the way 1.5 guessed at Exercise 2, which is the trade that closed that
   project. If Exercise 3 wants it, it belongs there or in an `HW_2.5` sandbox.
@@ -825,10 +916,17 @@ the requirement names the tile editor separately from the Level Create script, s
 being used answers it better than showing a finished file. It also carries the one part of item 5
 that produces no file: with the tileset panel open and all 16 tiles on screen, say that each PNG
 was added on its own rather than as one packed sheet, and that this is why there's no separate
-all-tiles image to show. That shot is the image. That needs one thing set up beforehand:
-`Level01.tmx` re-synced from the final `Level01.txt` the same way Stage 5 Step 3 does it, so the
-on-camera edit is a small addition on top of the real level and pressing Export adds only that
-change instead of replacing everything the Tile Placer authored.
+all-tiles image to show. That shot is the image. What that beat needs set up beforehand
+is `Level01.tmx` holding the final level, so the on-camera edit is a small addition on top of the
+real thing and pressing Export adds only that change. Stage 9 Step 2 left the map, the level file
+and the scene all in sync, so this costs nothing as things stand - it only comes back if the Tile
+Placer is used after that point, in which case re-sync the map from `Level01.txt` the same way
+Stage 5 Step 3 does it.
+
+Also owed here, from Stage 9's discussion: say out loud that Save Level deliberately does not save
+the scene. The two are separate on purpose, so a tile can be dropped in and tried without
+committing it to the level file. `LevelWindow`'s own header comment carries the same sentence, and
+the README's level section says it too.
 
 ## Notes / Decisions Log
 
@@ -1241,6 +1339,39 @@ _(append entries here as we make design decisions.)_
       "how high does it go" is `speedY * speedY / 19.62` tiles and the answer can be worked out
       before touching the Inspector. The old throw rose 0.02 tiles, which is to say it was flat and
       only looked like an arc because it was falling.
+- Stage 9 design decisions, made across the stage's own discussion before any code was written:
+    - Grid stays 30x20. `LevelWindow.Save` grows the grid to fit anything placed past the edge, so
+      a bigger level is free on the Unity side, but it would also mean editing `<map>` and
+      `<layer>` width and height in the `.tmx` and resizing the map in Tiled before Stage 10's
+      on-camera edit. Every hazard hit also teleports Mario back to spawn, so a longer level makes
+      a single mistake cost a longer walk on camera. Neither argument is about the camera, which
+      has no bounds at all.
+    - Tiled authors the level, the Unity tools tweak it - Peleg's framing, and the same split the
+      plan already had. Painting a grid is what Tiled is good at; re-exporting for every small
+      change is slow and puts the two files out of step. So the Tile Placer's job here is the
+      adjustments a playtest turns up, not placing 173 objects one click at a time.
+    - Level design, difficulty and pacing are Peleg's, not something to be computed. A reachability
+      model built from the prefabs' own physics was run once and found nothing stranded, but the
+      right way to learn how the level plays is to ask him how long a run takes and where he fails,
+      not to simulate it.
+    - The cloud at (9,11) travelling through the floor tile at (10,11) is deliberate, placed to
+      show the pass-through is a design decision rather than a bug. It is the only such case in
+      the level; the three clouds at (2,9), (3,9) and (4,9) overlap each other's paths but move in
+      lockstep and never meet.
+    - The death plane is not a tile, reuses `SC_Death` instead of implementing damage, is a solid
+      collider rather than a trigger because of the star, and draws its line as a Gizmo. Full
+      reasoning in Stage 9 Step 3.
+    - Logging splits into two halves and only one of them happens here. A file sink touches no call
+      site and removes the manual copy into `OutputLogsTemp.txt` from the working loop, so it stays
+      on the Stage 9.5 list. A `Log` wrapper with levels, categories and `[Conditional]` stripping
+      is what the industry actually does - `Debug.Log` is not stripped from release builds and its
+      string concatenation allocates even when nobody reads the message - but it would rewrite 89
+      call sites across 39 files, immediately before a video that shows the code, with no exercise
+      item behind it. Deferred. Two things soften the wait: every log line in this project already
+      leads with its subject, and Unity's Console already shows the originating script and line, so
+      typing in the Console's search box gets most of channel filtering for free.
+    - Step 5 widened from comments to comments and logging, since log clutter is a style rule and
+      belongs beside the comment rules rather than in a place of its own.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own
