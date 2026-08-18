@@ -935,8 +935,8 @@ hierarchy and code-quality rules that until now only existed in the session brie
 gains one line linking to `CONVENTIONS.md`.
 
 Applied: the two stale comments (`ProjectileGarlic` and `EnemyMovement` both still said "strike",
-which Stage 2 retired) and the moving tile's per-instance turn log, which the level's nine clouds
-moving in lockstep turned into nine identical lines every two seconds. `MovingFloor` now guards on
+which Stage 2 retired) and the moving tile's per-instance turn log, which the level's seven clouds
+moving in lockstep turned into seven identical lines every two seconds. `MovingFloor` now guards on
 `Time.frameCount` the way `DisappearingFloor` already did, and its message went plural to match.
 
 Still open: the seven remaining logging findings, all of them call-site work, deliberately left to
@@ -1058,12 +1058,68 @@ written: about 1:30 for a full run collecting everything and killing both vampir
 going straight for the key and the gateway, and he clears it reliably. So the video can afford one
 complete run rather than a partial one, and the 1:30 figure is the number to budget against.
 
-### Stage 10 — Video script `[ ]`
+### Stage 10 — Video script `[x]`
+
+#### Step 1 — Design discussion `[x]`
+
+Held before any of the script was written, same as every stage. Full outcome in the Decisions Log.
+
+#### Step 2 — Write `HW_2-Script.md` `[x]`
+
+`HW_2-Script.md` at the project root. Seven parts, 1888 spoken words, 16:55. It carries a ranked trim
+list at the top, with what each cut costs and five things named as not cuttable. Still owed:
+recording it.
+
+Revised once by Peleg after the first full draft, and his three additions are the ones worth knowing:
+Parts 2A and 3A split into per-item sub-parts, the axe thread in Part 3B, and the crate in Part 4.
+
+#### Step 3 — Record it `[x]`
+
+**Done by Peleg, and uploaded.** The hand-in zip is at `HW2/2026-HW_2-Mario-HandIn.zip`, outside this
+repo.
+
+The level in the repo is the level the video shows: 264 objects against the 259 it opened on. The
+five it gained are the ones added in Tiled on camera - a second lightning bolt, a rock, a heart and
+two clouds in place of one rock - plus a coin from the tile placer, which is the one net change out
+of two placed, two erased and one undone. Verified by reading `Level01.txt` rather than the Console:
+53 coins, 3 hearts, 3 bolts, 9 rocks, 9 clouds, 164 earth.
+
+The crate is gone, which was the point of it. No id 17 anywhere in `Level01.txt`, no row 17 in
+`TilePrefabMap.asset`, and `Sprite_Crate.prefab` deleted after the take. `Sprite_Crate.png` stays in
+`Assets/Sprites/` and in `Tiles01/Tiles/`, where it already was before any of this.
+
+`Level01.tmx` ends two cells behind `Level01.txt`, exactly as this stage predicted it would: the
+placer's coin at (24, 4), which never travelled back to Tiled, and the crate at (12, 3), which Tiled
+still holds. `Tiles01/` is in no git repo and is not submitted, so this costs nothing until the next
+export from Tiled - which would restore the crate and leave id 17 unmapped again.
+
+The budget is measured rather than felt, which is what the first draft got wrong. HW1's script
+recorded 1722 spoken words in 13:50 - about 160 words a minute where the camera is on a file and 90
+where it is on the game, since a Play part spends most of its length walking and waiting. The first
+draft here came to over 3000 words against a 15:00 target, which is past 20 minutes, and it took two
+passes to cut it to 2186 at 14:55.
+
+Then the 15:00 cap was lifted - Peleg's call, 16 or 17 minutes being fine - and most of what the cuts
+had taken went back in: the off-grid save warning as a beat inside Part 4 rather than an optional
+part, all seven tooling departures rather than three, and the design rationale in the code parts for
+the moving tile's kinematic body, the ground probe's shape and the boost's restore-from-`Awake`.
+Worth recording that the cap was never external: neither exercise text nor any course material sets
+a video length, and HW1's 15:00 was a target Peleg set himself after raising his own earlier 10:00.
+
+The scope notes below predate the discussion and are what it was held against.
 
 Exercise 2 asks for each item to be recorded working, the code shown and explained per item, and
 the game played at the end. Modeled on `2026-HW_1-Mario/HW_1-Script.md`: spoken lines in block
 quotes, stage directions outside them, each requirement called out in Hebrew so it's unmistakable
 which item is being shown, one take per part.
+
+**Fifteen minutes maximum**, and the format is not up for redesign - HW1's script came out very
+well, per Peleg, so this one reuses its shape rather than inventing another. That script targeted
+13:50 against a 15:00 cap and ran 507 lines for ten items plus a SOLID recap; Exercise 2 has nine
+items and no SOLID requirement in its text, so the same budget covers more per item. Its structural
+decisions are worth carrying too: no cold-open gameplay, Play sessions grouped rather than one per
+item (entering Play is the expensive move, not switching windows), and every part its own take so
+nothing depends on the one before it.
 
 Beyond the per-item walkthroughs, four things need saying explicitly on camera: why the health
 system reuses HW1's strikes (asked and confirmed with the instructor), why the level builder
@@ -1539,10 +1595,12 @@ _(append entries here as we make design decisions.)_
       model built from the prefabs' own physics was run once and found nothing stranded, but the
       right way to learn how the level plays is to ask him how long a run takes and where he fails,
       not to simulate it.
-    - The cloud at (9,11) travelling through the floor tile at (10,11) is deliberate, placed to
+    - The cloud at (9,8) travelling through the floor tile at (10,8) is deliberate, placed to
       show the pass-through is a design decision rather than a bug. It is the only such case in
-      the level; the three clouds at (2,9), (3,9) and (4,9) overlap each other's paths but move in
-      lockstep and never meet.
+      the level; the three clouds at (2,6), (3,6) and (4,6) overlap each other's paths but move in
+      lockstep and never meet. (All four cells were first recorded here as row indices counted
+      from the top of the level file rather than as world Y, and corrected against `Level01.txt`
+      while Stage 10's script was being designed.)
     - The level is closed by two columns of earth tiles rather than by colliders a script places -
       Peleg's call, after a scripted death plane and a scripted pair of walls had both been built
       and one of them confirmed working. The scripted version's own reasoning was sound and is kept
@@ -1612,6 +1670,114 @@ _(append entries here as we make design decisions.)_
       call. So each rule states what to do and stops, with the reasoning left here. The alternative
       was roughly twice the length and would have read as a defence of the codebase rather than a
       working document.
+- Stage 10 design decisions, made across the stage's own discussion before any of the script was
+  written:
+    - Parts are grouped by whether they need Play mode or the Editor, not by item number, so items
+      are covered 1, 2, 3, 4, 8, 5, 6, 7, 9. Exercise 2 splits along a line Exercise 1 didn't have:
+      items 1-4 and 8 are runtime, items 5-7 are one continuous editor session across Tiled and two
+      Unity windows, and item 9 is both. Grouping by mode buys three context switches instead of
+      five and puts item 8 with the two new tiles, which is the ground its own playtest already
+      used. The cost is the jumbled numbering, paid for by the Hebrew callout at every beat. Peleg's
+      call to accept it, over strict 1-9 order with item 8 stranded after the editor block.
+    - Items 5, 6 and 7 are one continuous demo rather than three: Tiled adds tiles, Export and Build
+      Level bring them into the scene, the placer's dropdown answers item 6, and erase mode answers
+      item 7. One part, one editor session, and the requirement that reads as three pieces of work
+      reads as the one design decision it is.
+    - No SOLID recap part. Exercise 2's text doesn't ask, and the two places a principle is the
+      actual explanation of a graded item already carry it - item 2's MVC split, and items 5/6's
+      "a row in an asset rather than an edit to the tool", which is Open/Closed applied to the
+      lesson's own `switch`. A recap would cost a minute to repeat what had just been said.
+    - The unrequired work gets one 0:40 part, labelled as unrequired: the seven tooling departures
+      from Lesson 6 and the logging system with its `Tools → Logs` window. Both are on screen for
+      the whole video anyway - every Console line carries a bracketed category, and the tools are the
+      subject of three items. The departures are stated as choices with reasons rather than as
+      corrections to the lesson, per Peleg. `CONVENTIONS.md` gets no mention at all, also his call:
+      reading a document on camera is dead air.
+    - `maxJumps` stays at 2 and the temporary triple-jump demo Stage 8 suggested is dropped, per
+      Peleg. Part 4 already makes the data-over-code argument twice.
+    - Item 2's beat needs health to actually reach zero, so the route is fixed arithmetic rather
+      than a list of things to touch: 3, spikes to 2, ghost to 1, heart to 2, garlic to 1, ghost to
+      0. Four hazard hits and one pickup, each hit starting the next leg from spawn. The star is
+      collected on the way and has to be allowed to expire before the garlic hit, or invincibility
+      suppresses the loss and the count never reaches zero - Mario's gold tint is the cue.
+    - The cap-at-3 branch is demonstrated after the game over rather than before it, which is what
+      makes it demonstrable at all. HW1 could only show one of the two health branches per run
+      because its pickup was one-use; here the reload re-places every heart, so a fresh one can be
+      collected at full health and refused. The same shot doubles as the proof that the level
+      reinitialized, which is the part of item 2 the text asks for and nothing else shows.
+    - The on-camera Tiled edit is kept rather than erased afterwards, per Peleg: a second bolt beside
+      the first, another rock, two clouds replacing a rock, and one more heart. The first draft of
+      this beat had the additions erased again so the level file came back to its 259 objects
+      untouched, which is neater and worth less - kept edits mean the closing run plays the level the
+      tooling part just built. Item 7's erase target is coins instead, added and removed with the
+      placer in the same session.
+    - Recording order is part order, and the level visibly changing partway through the video is the
+      point rather than a continuity error - Peleg's correction to the opposite call, which had Part
+      4 shot first so every take showed the same level. His reading is better and it is what the
+      script now says: play the level, edit it in Tiled and with the tools on camera, then play the
+      changed one. So Parts 1, 2B and 3B run on the level as it stands and Part 6 runs on the edited
+      one, which also hands Part 6 a payoff it otherwise wouldn't have - two bolts side by side,
+      demonstrating the restart that Part 2A only describes. The takes stay independent as
+      performances; what now only moves one way is the project state.
+    - `Level01.tmx` will be behind by the placer's coin edits when Part 4 is done, since those happen
+      in Unity and never travel back. It costs nothing: `Tiles01/` is in no git repo, so the `.tmx`
+      is neither versioned nor submitted, and `Level01.txt` is the graded file and holds everything.
+      It only matters at the next export from Tiled, which would overwrite the placer's changes, so
+      the re-sync belongs there rather than after the video.
+    - The `TilePrefabMap` missing-row demo from Stage 5's log is replaced by an off-grid drag, per
+      Peleg - move a cloud to y 14.5, Save, and let `Moved to the nearest cell` name it. It needs no
+      asset edit and it demonstrates a warning the tool actually writes rather than a hole punched in
+      the mapping. One correction to how he first described the restore: Build Level does not undo
+      it, because the Save has already written the rounded cell into the file, so building from that
+      file would place the cloud at the wrong cell permanently. The script drags it back and saves
+      again instead.
+    - The speed boost is shown by running a stretch of the start block and letting the boost expire
+      mid-run, with no before-and-after comparison and no Console line - Peleg's call, on the grounds
+      that it is plainly visible on screen. The absence of a visual cue is explained on camera as
+      the tint-arbiter decision it was rather than left looking like an omission.
+    - Time is budgeted by spoken word count against HW1's measured pace rather than by estimating
+      each beat, because estimating is what produced a first draft running past twenty minutes. Two
+      rates, taken from HW1's own parts: about 160 words a minute where the camera is on a file, and
+      about 90 where it is on the game, since a Play part spends most of its length walking and
+      waiting. Every part in the script carries a word count that its stated time can actually hold.
+    - The video runs 16:55 rather than under fifteen minutes - Peleg's call once the cost of the cap
+      was visible, which was three of the four beats that had been dropped and most of the code
+      parts' rationale. Nothing external ever required fifteen: it appears in no exercise text and no
+      course material, and HW1's cap was a target he set himself. So the length is chosen against
+      what nine items need rather than against a number, and the script keeps a ranked trim list for
+      a rehearsal that runs long instead of pre-cutting to a figure.
+    - Part 4 adds a throwaway tile type on camera - a crate, placed in Tiled, built into the level,
+      stamped a few times with the placer and then erased again with its mapping row removed.
+      Peleg's addition, and it is a better answer to item 5 than the first draft's rearrangement of
+      tiles that already existed: adding a type that has never existed before is what makes "the
+      builder needed no code change" a demonstration rather than a claim. It also recovers the
+      unmapped-id demo that Stage 5's own log proposed and the first draft dropped, for free and in
+      the right order - export and build before the mapping row exists, so
+      `Tile ids skipped, nothing mapped to them: 17` names the crate out loud, then the row goes in
+      and the rebuild places it. The cost is prep that has to exist before recording: `Crate.png` at
+      48px in both `Tiles01/Tiles/` and `Assets/Sprites/`, plus a `Sprite_Crate.prefab`.
+    - Part 3B carries a three-throw axe thread, also Peleg's: at a rock, on top of a cloud, and
+      against a cloud's side. That is Stage 8.5's whole bug and its fix shown on camera rather than
+      only recorded here, and the three cases share one explanation - a landed axe is held up by
+      whatever it froze against, and it drops when it stops touching it. No exercise item asks for
+      any of it; it earns its 35 seconds by being the only place the two new tile types interact
+      with something other than Mario.
+    - The Console is on screen in Part 4 only, and never during a Play part - Peleg's call, tighter
+      than HW1's "visible but mostly unmentioned". Every claim in 2B and 3B therefore has to be
+      visible in the game or on a `Txt_` label, which is why the health cap is demonstrated by the
+      counter not moving rather than by the `Health pickup ignored` line. Part 4 keeps it because the
+      editor tools report through it and the off-grid beat is a warning being read.
+    - What `Save Level` does not save is the Unity *scene asset*, not the editor's changes to the
+      level. It reads the scene and writes every tile in it to `Level01.txt`, placer edits included;
+      what it leaves alone is `Scene_Physics.unity`, which is why a tile can be dropped in, looked at
+      and abandoned by simply not saving either one. Worth recording because the first reading of it
+      during Stage 10 had the two backwards, and the script's item 9 line depends on getting it
+      right.
+    - Two stale coordinates in this log were corrected against `Level01.txt` while the script was
+      being designed: the pass-through cloud and its earth tile are at (9, 8) and (10, 8), the cloud
+      trio at (2, 6), (3, 6) and (4, 6), and the level holds seven clouds and nine rocks rather than
+      the nine clouds recorded in Stage 9 Step 5. The wrong figures were file row indices counted
+      from the top, and counts from an earlier version of the level.
 - Consider emailing the instructor about the editor-tooling differences with an eye to *future*
   hand-ins rather than this one — the seven departures from Lesson 6's `BuildLevel.cs` are all
   deliberate and all defensible, and it's worth knowing in advance whether he'd rather see his own
